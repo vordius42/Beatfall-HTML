@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beatfall</title>
+<style>
+:root{--bg:#eeecf7;--fg:#1c1b3a;--mut:#65638a;--lane:#e2dff0;--line:#1c1b3a;--btn:#1c1b3a;--btnfg:#fff;--acc:#ff4f87;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13132b;--fg:#f0eefc;--mut:#9a98c4;--lane:#1b1b3a;--line:#f0eefc;--btn:#f0eefc;--btnfg:#13132b}}
+:root[data-theme="dark"]{--bg:#13132b;--fg:#f0eefc;--mut:#9a98c4;--lane:#1b1b3a;--line:#f0eefc;--btn:#f0eefc;--btnfg:#13132b}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:"Trebuchet MS",system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+#stage{position:relative;height:100%}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:var(--bg)}
+.ov[hidden]{display:none}
+h1{margin:0;font-size:clamp(44px,14vw,76px);font-weight:900;letter-spacing:-.04em;line-height:.95}
+h1 span{display:inline-block;transform:translateY(0)}
+h2{margin:0;font-size:72px;font-weight:900}
+p{margin:0;color:var(--mut);max-width:34ch;line-height:1.45;font-size:15px}
+#st{min-height:2.9em;color:var(--fg)}
+button,.btn{font:inherit;font-weight:700;border:2px solid var(--btn);background:var(--btn);color:var(--btnfg);border-radius:14px;padding:13px 26px;font-size:16px;cursor:pointer;display:inline-block}
+button:disabled{opacity:.35;cursor:default}
+button.alt,.btn.alt{background:transparent;color:var(--fg)}
+button:focus-visible,.btn:focus-within{outline:3px solid var(--acc);outline-offset:2px}
+.seg{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.seg button{padding:8px 16px;font-size:14px;background:transparent;color:var(--fg);border-color:var(--mut)}
+.seg button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#quit{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:10px;padding:6px 12px;font-size:14px;background:transparent;color:var(--fg);border-color:var(--mut)}
+#quit[hidden]{display:none}
+input[type=file]{position:absolute;opacity:0;width:1px;height:1px}
+.cal{font-size:14px;color:var(--mut)}.cal input{width:min(260px,70vw);accent-color:var(--acc)}
+#hSc,#hCb,#hJd{position:absolute;pointer-events:none;font-weight:900;color:var(--fg)}#hSc{left:14px;top:6px;font-size:26px}#hCb{left:0;right:0;top:18%;text-align:center;font-size:28px;color:var(--mut)}#hJd{left:0;right:0;top:calc(80% - 96px);text-align:center;font-size:28px;opacity:0}
+</style>
+</head>
+<body>
+<div id="stage">
+<canvas id="cv"></canvas>
+<div id="hSc"></div><div id="hCb"></div><div id="hJd"></div>
+<button id="quit" hidden>Keluar</button>
+<div class="ov" id="menu">
+<h1>Beatfall</h1>
+<p>Pilih lagu dari penyimpanan HP-mu. Game membuat nadanya otomatis dari beat lagu.</p>
+<label class="btn alt"><input type="file" id="file" accept="audio/*,.flac,.mp3,.wav,.ogg,.m4a,.aac,.opus">Pilih file musik</label>
+<div class="seg" id="seg"><button data-d="easy">Mudah</button><button data-d="normal" class="on">Sedang</button><button data-d="hard">Sulit</button><button data-d="multi">Multi-jari</button></div>
+<div class="seg" id="opt"><button data-o="lg">Note panjang</button><button data-o="su">Berkelanjutan</button><button data-o="db">Note ganda</button></div>
+<label class="cal">Jeda antar note panjang: <b id="hgv">0.7</b> detik<br><input type="range" id="hg" min="0.3" max="1.2" step="0.05" value="0.7"></label>
+<label class="cal">Kecepatan: <b id="spv">1.0</b>x, skor ×<b id="smv">1.0</b><br><input type="range" id="sp" min="1" max="4" step="0.1" value="1"></label>
+<div class="seg"><button id="xt">Eksperimen: note bertambah sesuai kecepatan</button></div>
+<label class="cal">Kalibrasi ketukan: <b id="ov">0</b> ms<br><input type="range" id="cal" min="-200" max="200" step="5" value="0"></label>
+<p>Geser ke kanan jika ketukanmu sering terlambat, ke kiri jika terlalu cepat.</p>
+<p id="st">Mendukung MP3, WAV, OGG, M4A, dan FLAC (tergantung browser).</p>
+<button id="go" disabled>Mulai main</button>
+<p>Ketuk lajur saat nada menyentuh garis. Di keyboard: D F J K.</p>
+</div>
+<div class="ov" id="end" hidden>
+<h2 id="gr">S</h2>
+<p id="sm"></p>
+<button id="again">Main lagi</button>
+<button class="alt" id="back">Pilih lagu lain</button>
+</div>
+</div>
+<script>
+const $=id=>document.getElementById(id),cv=$('cv'),g=cv.getContext('2d');
+const D={easy:{k:1.7,gap:.36},normal:{k:1.45,gap:.27},hard:{k:1.2,gap:.2},multi:{k:1.1,gap:.15}};
+let FALL=1.5;const LEAD=2,WP=.07,WG=.15,COL=['#ff4f87','#ffb02e','#2ec4a0','#4a8cff'];
+let AC,buf,fname='',notes=[],diff='normal',st,run=false,src,t0=0,idx=0,theme={},off=0,D0=null,sc=0,holds=[0,0,0,0],LG=false,DB=false,SC=Math.min(devicePixelRatio||1,1.5),CW=0,CH=0,fa=16.7,lt0=0,slow=0,LQ=false,lsc=-1,lcb=-1,ljs=0,hSc,hCb,hJd,spr=[],HG=.7,SU=false,SP=1,SM=1,XT=false;
+function rt(){const s=getComputedStyle(document.documentElement);['--bg','--fg','--mut','--lane','--line'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
+rt();matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rt();fit()});
+const bgc=document.createElement('canvas');
+function fit(){const r=$('stage').getBoundingClientRect();CW=r.width;CH=r.height;cv.width=bgc.width=Math.round(CW*SC);cv.height=bgc.height=Math.round(CH*SC);g.setTransform(SC,0,0,SC,0,0);
+ const b=bgc.getContext('2d'),lw=CW/4,hy=CH*.8;b.setTransform(SC,0,0,SC,0,0);b.fillStyle=theme['--bg'];b.fillRect(0,0,CW,CH);
+ for(let l=0;l<4;l+=2){b.fillStyle=theme['--lane'];b.fillRect(l*lw,0,lw,CH)}
+ b.fillStyle=theme['--line'];b.fillRect(0,hy-1.5,CW,3);b.fillStyle=theme['--mut'];b.font='600 16px sans-serif';b.textAlign='center';
+ for(let l=0;l<4;l++)b.fillText('DFJK'[l],l*lw+lw/2,hy+34);
+ const sw=lw-12,sh=Math.min(90,CH*.11);spr=COL.map(c=>{const s=document.createElement('canvas');s.width=Math.ceil(sw*SC);s.height=Math.ceil(sh*SC);const x=s.getContext('2d');x.scale(SC,SC);x.fillStyle=c;x.beginPath();x.roundRect?x.roundRect(1.5,1.5,sw-3,sh-3,12):x.rect(1.5,1.5,sw-3,sh-3);x.fill();x.lineWidth=3;x.strokeStyle=theme['--fg'];x.stroke();return s});fa=16.7;slow=0}
+addEventListener('resize',fit);fit();
+const setS=t=>$('st').textContent=t,fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;
+ $('go').disabled=true;setS('Membaca file…');
+ try{AC=AC||new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  buf=await AC.decodeAudioData(await f.arrayBuffer());fname=f.name.replace(/\.[^.]+$/,'');
+  await new Promise(r=>setTimeout(r,30));analyze();
+ }catch(x){buf=null;setS('File ini tidak bisa dibaca. Formatnya mungkin tidak didukung browser/HP-mu. Coba MP3 atau WAV.')}};
+$('seg').onclick=e=>{const d=e.target.dataset.d;if(!d)return;diff=d;[...$('seg').children].forEach(b=>b.classList.toggle('on',b.dataset.d===d));if(buf)analyze()};
+function analyze(){
+ const sr=buf.sampleRate,n=buf.length,hop=512,d0=buf.getChannelData(0),d1=buf.numberOfChannels>1?buf.getChannelData(1):d0;
+ const H=Math.floor(n/hop),E=[0,1,2].map(()=>new Float32Array(H));
+ const a1=1-Math.exp(-2*Math.PI*250/sr),a2=1-Math.exp(-2*Math.PI*2500/sr);let y1=0,y2=0;
+ for(let h=0;h<H;h++){let s0=0,s1=0,s2=0;
+  for(let i=h*hop,e=i+hop;i<e;i++){const x=(d0[i]+d1[i])*.5;y1+=a1*(x-y1);y2+=a2*(x-y2);const m=y2-y1,v=x-y2;s0+=y1*y1;s1+=m*m;s2+=v*v}
+  E[0][h]=Math.sqrt(s0/hop);E[1][h]=Math.sqrt(s1/hop);E[2][h]=Math.sqrt(s2/hop)}
+ const cfg=D[diff],win=Math.round(.5*sr/hop),DF=XT?1+(SP-1)*.5:1;let c=[];
+ for(let b=0;b<3;b++){const e=E[b],f=new Float32Array(H),p=new Float64Array(H+1);
+  for(let i=1;i<H;i++)f[i]=Math.max(0,e[i]-e[i-1]);
+  for(let i=0;i<H;i++)p[i+1]=p[i]+f[i];
+  for(let i=2;i<H-2;i++){const a=Math.max(0,i-win),z=Math.min(H,i+win),m=(p[z]-p[a])/(z-a);
+   if(f[i]>m*cfg.k/Math.sqrt(DF)+1e-4&&f[i]>=f[i-1]&&f[i]>=f[i+1])c.push({t:i*hop/sr,b,s:f[i]/(m+1e-4)})}}
+ c.sort((u,v)=>u.t-v.t);notes=[];
+ const cap=({easy:[3,1],normal:[4,2],hard:[6,3],multi:[7,3]})[diff].map(v=>v*DF),ok=new Uint8Array(c.length);
+ c.map((o,i)=>i).sort((a,b)=>c[b].s-c[a].s).forEach(i=>{const t=c[i].t;if(t<.6)return;let n1=0,n2=0;
+  for(let j=i-1;j>=0&&t-c[j].t<.5;j--)if(ok[j]){n1++;if(t-c[j].t<.2)n2++}
+  for(let j=i+1;j<c.length&&c[j].t-t<.5;j++)if(ok[j]){n1++;if(c[j].t-t<.2)n2++}
+  if(n1<cap[0]&&n2<cap[1])ok[i]=1});
+ c=c.filter((o,i)=>ok[i]);
+ let last=-9,al=0,ah=0,am=0,pl=-1,cl=0;
+ for(const o of c){const need=cfg.gap/DF*(1.3-.6*Math.min(1,Math.max(0,(o.s-1.5)/3)))*(cl>=2?1.8:1);if(o.t<.6||o.t-last<need)continue;cl=o.t-last<cfg.gap/DF*1.15?cl+1:0;let l;
+  if(o.b===0)l=al++%2;else if(o.b===2)l=2+(ah++%2);else l=(pl+1+(am++%2))%4;
+  if(l===pl&&o.t-last<.3)l=(l+1)%4;
+  notes.push({t:o.t,l,d:0,hit:0});last=o.t;pl=l}
+ const hs=i=>((i*2654435761)>>>0)%1000/1000;const MF=diff==='multi';const bl=l=>l===1?0:l===2?3:-1;
+ const held=(t,l)=>notes.some(m=>m.d&&(m.l===l||bl(m.l)===l)&&t>=m.t-.05&&t<=m.t+m.d+.05);
+ const busy=t=>notes.some(m=>m.d&&t>=m.t-.1&&t<=m.t+m.d+.25);
+ const sus=[];
+ if(LG&&SU){const L=E[0].length,ev=new Float32Array(L),sm=new Float32Array(L),w=8;let a=0;
+  for(let i=0;i<L;i++)ev[i]=E[0][i]+E[1][i];
+  for(let i=0;i<L;i++){a+=ev[i];if(i>=w)a-=ev[i-w];sm[i]=a/Math.min(i+1,w)}
+  const so=Float32Array.from(sm).sort(),thr=so[Math.floor(L*.85)]*.5,W2=Math.round(.3*sr/hop),segs=[];let s0=-1;
+  for(let i=0;i<=L;i++){let ok=false;if(i<L){let mn=1e9;for(let j=Math.max(0,i-W2);j<=Math.min(L-1,i+W2);j+=2)if(sm[j]<mn)mn=sm[j];ok=mn>=thr}
+   if(ok&&s0<0)s0=i;if(!ok&&s0>=0){segs.push([s0*hop/sr,i*hop/sr]);s0=-1}}
+  let tot=0;
+  for(const [q0,q1] of segs){if(q1-q0<1.4)continue;let t=q0+.15;const e=q1-.15;
+   while(e-t>=1.2){const d=Math.min(e-t,5);if(tot+d>buf.duration*.35)break;tot+=d;
+    let h=notes.find(n=>!n.d&&Math.abs(n.t-t)<.3);
+    if(!h){h={t,l:0,d:0,hit:0};notes.push(h)}
+    h.l=hs(sus.length+7)<.85?(sus.length%2?3:0):1+sus.length%2;
+    h.d=d;h.su=1;sus.push(h);t=Math.max(t,h.t)+d+HG}}
+  notes.sort((x,y)=>x.t-y.t)}
+ if(LG){let end=-1,cov=0;const lim=buf.duration*.25;for(let i=0;i<notes.length;i++){const n=notes[i];if(n.d||n.t<end+HG||sus.some(m=>n.t>m.t-1.5&&n.t<m.t+m.d+HG)||hs(i)>=.6)continue;
+  let pc=0;for(let j=i-1;j>=0&&n.t-notes[j].t<=.25;j--)pc++;
+  if(MF){let nx=buf.duration;for(let j=i+1;j<notes.length;j++)if(notes[j].l===n.l){nx=notes[j].t;break}
+   const d=Math.min(nx-n.t-.2,1.4);if(d>=.3&&cov+d<=lim){n.d=d;end=n.t+d;cov+=d}continue}
+  for(let k=0;k<3&&pc+k<=2;k++){const nn=notes[i+1+k],d=Math.min((nn?nn.t:buf.duration)-n.t-.3,1.2);if(d>=.4&&cov+d<=lim){n.d=d;end=n.t+d;cov+=d;break}}}
+  const sp=notes.filter(m=>m.d&&!m.su),ss=notes.filter(m=>m.su);
+  if(sp.length&&!MF)notes=notes.filter(n=>n.d||!sp.some(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25));
+  if(sp.length&&MF){let lt=-9;notes=notes.filter(n=>{if(n.d)return true;if(sp.some(m=>n.t>=m.t-.12&&n.t<m.t+.1))return false;if(sp.some(m=>bl(m.l)===n.l&&n.t>=m.t-.25&&n.t<=m.t+m.d+.25))return false;if(!sp.some(m=>n.t>=m.t&&n.t<=m.t+m.d+.1))return true;if(n.t-lt<.22)return false;lt=n.t;return true})}
+  if(ss.length){let lt=-9;notes=notes.filter(n=>{if(n.d)return true;const m=ss.find(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25);if(!m)return true;if(n.l===m.l||n.l===bl(m.l)||n.t<m.t+.2||n.t>m.t+m.d-.1)return false;if(n.t-lt<(MF?.3:.45))return false;lt=n.t;return true})}}
+ if(DB||MF){const pr=({easy:.08,normal:.14,hard:.2,multi:.22})[diff],ex=[];notes.forEach((n,i)=>{if(i>0&&!n.d&&(MF||!busy(n.t))&&hs(i+977)<pr){let ln=-1;for(let k=0;k<3&&ln<0;k++){const c=(n.l+1+(Math.floor(hs(i+31)*3)+k)%3)%4;if(!held(n.t,c))ln=c}if(ln>=0){ex.push({t:n.t,l:ln,d:0,hit:0});if(MF&&!busy(n.t)&&hs(i+555)<.3){for(let c2=0;c2<4;c2++)if(c2!==n.l&&c2!==ln&&!held(n.t,c2)){ex.push({t:n.t,l:c2,d:0,hit:0});break}}}}});notes=notes.concat(ex).sort((a,b)=>a.t-b.t)}
+ {const sl=.22/Math.sqrt(DF),hd=notes.filter(m=>m.d),ll=[-9,-9,-9,-9];notes=notes.filter(n=>{if(!n.d&&hd.some(m=>m.l===n.l&&m.t>n.t&&m.t-n.t<sl))return false;if(!n.d&&n.t-ll[n.l]<sl)return false;ll[n.l]=n.d?n.t+n.d:n.t;return true})}
+ setS(fname+' ('+fmt(buf.duration)+', '+notes.length+' nada)'+(notes.length<8?'. Terlalu sedikit beat terdeteksi, coba tingkat Sulit.':''));
+ $('go').disabled=notes.length<8}
+function start(){try{src&&src.stop()}catch(e){}
+ AC.resume();D0=null;sc=0;lt0=0;lsc=-1;lcb=-1;ljs=0;notes.forEach(n=>{n.hit=0;n.br=0});idx=0;holds=[0,0,0,0];
+ st={sc:0,cb:0,mx:0,p:0,g:0,o:0,m:0,fl:[0,0,0,0],jt:'',jc:0,jts:-9999};
+ src=AC.createBufferSource();src.buffer=buf;src.connect(AC.destination);t0=AC.currentTime+LEAD;src.start(t0);
+ $('menu').hidden=$('end').hidden=true;$('quit').hidden=false;run=true;loop()}
+function stop(){run=false;try{src.stop()}catch(e){}$('quit').hidden=true}
+function jd(t,c){st.jt=t;st.jc=c;st.jts=performance.now()}
+function sync(){if(AC.state!=='running')return;
+ const d=AC.currentTime-(AC.outputLatency||0)-(AC.baseLatency||0)-performance.now()/1000;
+ sc++;if(D0!==null&&sc>30&&Math.abs(d-D0)>.25)return;
+ D0=D0===null?d:D0+(d-D0)*Math.max(.03,1/sc)}
+function clk(p){return D0===null?AC.currentTime-t0:p/1000+D0-t0}
+function loop(){if(!run)return;const nw=performance.now();if(lt0){fa+=(nw-lt0-fa)*.05;if(fa>24){if(++slow>90){slow=0;fa=16.7;if(SC>1){SC=Math.max(1,SC-.25);fit()}else LQ=true}}else slow=0}lt0=nw;sync();const T=clk(performance.now()),J=T-off;
+ for(let i=idx;i<notes.length;i++){const n=notes[i];if(n.t>J)break;if(!n.hit&&J-n.t>WG){n.hit=-1;st.m++;st.cb=0;jd('MISS',2)}}
+ while(idx<notes.length&&notes[idx].hit)idx++;
+ for(let l=0;l<4;l++){const n=holds[l];if(!n)continue;if(J>=n.t+n.d){holds[l]=0;n.hit=1;st.sc+=200;st.cb++;st.mx=Math.max(st.mx,st.cb);jd('HOLD',0)}else st.sc+=2}
+ draw(T);if(T>buf.duration+.8)return finish();requestAnimationFrame(loop)}
+function tap(l,p){if(!run)return;const T=clk(p||performance.now())-off;st.fl[l]=1;let b=null,bd=9;
+ for(let i=idx;i<notes.length;i++){const n=notes[i];if(n.t>T+FALL)break;if(n.l!==l||n.hit)continue;b=n;bd=Math.abs(n.t-T);break}
+ if(!b)return;b.hit=b.d>0?2:1;if(b.d>0)holds[l]=b;
+ if(bd<=WP){st.p++;st.sc+=300;jd('PERFECT',0)}else if(bd<=WG){st.g++;st.sc+=100;jd('GOOD',1)}else{st.o++;st.sc+=30;jd('OK',3)}
+ st.cb++;st.mx=Math.max(st.mx,st.cb);st.sc+=Math.min(st.cb,50)*5}
+function rr(x,y,w,h,r,b){g.beginPath();g.roundRect&&!LQ?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h);g.fill();if(b&&!LQ){g.lineWidth=3;g.strokeStyle=b;g.stroke()}}
+function draw(T){const W=CW,H=CH,hy=H*.8,lw=W/4,nh=Math.min(90,H*.11);
+ g.drawImage(bgc,0,0,W,H);
+ for(let l=0;l<4;l++){
+  const f=st.fl[l];if(f>0){g.globalAlpha=f*.4;g.fillStyle=COL[l];g.fillRect(l*lw,hy-H*.25,lw,H*.25+(H-hy));g.globalAlpha=1;st.fl[l]=Math.max(0,f-.08)}}
+ for(let i=idx;i<notes.length;i++){const n=notes[i],dt=n.t-T;if(dt>FALL)break;if(n.hit>0)continue;
+  const yh=hy-dt/FALL*hy,yt=n.d?hy-(dt+n.d)/FALL*hy:yh;g.globalAlpha=n.hit===-1?.25:1;g.fillStyle=COL[n.l];
+  if(!n.d&&!LQ)g.drawImage(spr[n.l],n.l*lw+6,yh-nh/2,lw-12,nh);else rr(n.l*lw+6,yt-nh/2,lw-12,yh-yt+nh,12,theme['--fg']);if(n.d){g.globalAlpha*=.35;g.fillStyle='#fff';rr(n.l*lw+lw/2-4,yt,8,yh-yt,4)}g.globalAlpha=1}
+ for(let l=0;l<4;l++){const n=holds[l];if(!n)continue;const yt=hy-(n.t+n.d-T)/FALL*hy;g.fillStyle=COL[l];rr(l*lw+6,yt-nh/2,lw-12,hy-yt+nh/2,12,theme['--fg']);g.globalAlpha=.5;g.fillStyle='#fff';rr(l*lw+6,hy-nh/2,lw-12,nh,12);g.globalAlpha=1}
+ g.fillStyle=COL[0];g.fillRect(0,0,W*Math.max(0,Math.min(1,T/buf.duration)),4);
+ if(st.sc!==lsc){lsc=st.sc;hSc.textContent=Math.round(lsc*SM)}
+ if(st.cb!==lcb){lcb=st.cb;hCb.textContent=lcb>1?lcb+' kombo':''}
+ const a=1-(performance.now()-st.jts)/600;
+ if(st.jts!==ljs){ljs=st.jts;hJd.textContent=st.jt;hJd.style.color=['#2ec4a0','#4a8cff','#ff4f87','#ffb02e'][st.jc]}hJd.style.opacity=a>0?a:0}
+function finish(){stop();const t=notes.length,acc=(st.p+st.g*.6+st.o*.3)/t*100,gr=acc>=95?'S':acc>=85?'A':acc>=70?'B':acc>=50?'C':'D';
+ $('gr').textContent=gr;
+ $('sm').textContent=fname+'. Skor '+Math.round(st.sc*SM)+' (kecepatan '+SP.toFixed(1)+'x), akurasi '+acc.toFixed(1)+'%, kombo terbaik '+st.mx+'. Perfect '+st.p+', Good '+st.g+', OK '+st.o+', Miss '+st.m+'.';
+ $('end').hidden=false}
+const ptr={};
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),l=Math.min(3,Math.max(0,Math.floor((e.clientX-r.left)/r.width*4)));ptr[e.pointerId]=l;tap(l,e.timeStamp)});
+function rel(l,p){const n=holds[l];if(!n||!run)return;const J=clk(p||performance.now())-off;holds[l]=0;n.hit=1;
+ if(J>=n.t+n.d-.12){st.sc+=200;st.cb++;st.mx=Math.max(st.mx,st.cb);jd('HOLD',0)}else{n.br=1;st.cb=0;jd('BREAK',2)}}
+const pu=e=>{const l=ptr[e.pointerId];if(l!==undefined){delete ptr[e.pointerId];rel(l,e.timeStamp)}};
+addEventListener('pointerup',pu);addEventListener('pointercancel',pu);
+addEventListener('keydown',e=>{if(e.repeat)return;const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0)tap(l,e.timeStamp)});
+addEventListener('keyup',e=>{const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0)rel(l,e.timeStamp)});
+hSc=$('hSc');hCb=$('hCb');hJd=$('hJd');$('go').onclick=start;$('again').onclick=start;
+$('hg').oninput=e=>{HG=+e.target.value;$('hgv').textContent=HG.toFixed(2).replace(/0$/,'');try{localStorage.setItem('bf_hg',e.target.value)}catch(x){}};
+$('hg').onchange=()=>{if(buf&&LG)analyze()};
+$('sp').oninput=e=>{SP=+e.target.value;SM=SP;FALL=1.5/SP;$('spv').textContent=SP.toFixed(1);$('smv').textContent=SP.toFixed(1);try{localStorage.setItem('bf_sp',e.target.value)}catch(x){}};
+$('sp').onchange=()=>{if(buf&&XT)analyze()};
+$('xt').onclick=e=>{XT=!XT;e.target.classList.toggle('on',XT);if(buf)analyze()};
+try{const v=localStorage.getItem('bf_sp');if(v!==null){$('sp').value=v;$('sp').oninput({target:$('sp')})}}catch(x){}
+try{const v=localStorage.getItem('bf_hg');if(v!==null){$('hg').value=v;$('hg').oninput({target:$('hg')})}}catch(x){}
+$('opt').onclick=e=>{const o=e.target.dataset.o;if(!o)return;const B=k=>$('opt').querySelector('[data-o='+k+']');
+ if(o==='lg'){LG=!LG;if(!LG)SU=false}else if(o==='db')DB=!DB;else{SU=!SU;if(SU)LG=true}
+ B('lg').classList.toggle('on',LG);B('db').classList.toggle('on',DB);B('su').classList.toggle('on',SU);if(buf)analyze()};
+$('cal').oninput=e=>{off=e.target.value/1000;$('ov').textContent=e.target.value;try{localStorage.setItem('bf_cal',e.target.value)}catch(x){}};
+try{const v=localStorage.getItem('bf_cal');if(v!==null){$('cal').value=v;$('cal').oninput({target:$('cal')})}}catch(x){}
+$('back').onclick=()=>{$('end').hidden=true;$('menu').hidden=false};
+$('quit').onclick=()=>{stop();$('menu').hidden=false};
+</script>
+</body>
+</html>

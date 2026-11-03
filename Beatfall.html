@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Beatfall</title>
+<style>
+:root{--bg:#eeecf7;--fg:#1c1b3a;--mut:#65638a;--lane:#e2dff0;--line:#1c1b3a;--btn:#1c1b3a;--btnfg:#fff;--acc:#ff4f87;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13132b;--fg:#f0eefc;--mut:#9a98c4;--lane:#1b1b3a;--line:#f0eefc;--btn:#f0eefc;--btnfg:#13132b}}
+:root[data-theme="dark"]{--bg:#13132b;--fg:#f0eefc;--mut:#9a98c4;--lane:#1b1b3a;--line:#f0eefc;--btn:#f0eefc;--btnfg:#13132b}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:"Trebuchet MS",system-ui,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+#stage{position:relative;height:100%}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px 16px;text-align:center;background:var(--bg)}.ov.dim{background:color-mix(in srgb,var(--bg) 90%,transparent)}.ov.sc{display:block;overflow-y:auto}.ov.sc>.in{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;max-width:420px;margin:0 auto}
+.ov[hidden]{display:none}
+h1{margin:0;font-size:clamp(34px,10vw,52px);font-weight:900;letter-spacing:-.04em;line-height:.95}
+h1 span{display:inline-block;transform:translateY(0)}
+h2{margin:0;font-size:52px;font-weight:900}
+p{margin:0;color:var(--mut);max-width:34ch;line-height:1.35;font-size:13px}
+#st{min-height:2.7em;color:var(--fg);font-size:13px}
+button,.btn{font:inherit;font-weight:700;border:2px solid var(--btn);background:var(--btn);color:var(--btnfg);border-radius:14px;padding:10px 22px;font-size:15px;cursor:pointer;display:inline-block}
+button:disabled{opacity:.35;cursor:default}
+button.alt,.btn.alt{background:transparent;color:var(--fg)}
+button:focus-visible,.btn:focus-within{outline:3px solid var(--acc);outline-offset:2px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.seg button{padding:6px 12px;font-size:13px;background:transparent;color:var(--fg);border-color:var(--mut)}
+.seg button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+#pause{position:absolute;top:calc(6px + env(safe-area-inset-top,0px));right:10px;min-height:36px;padding:6px 14px;font-size:14px;background:transparent;color:var(--fg);border-color:var(--mut)}
+#pause[hidden]{display:none}
+#cd{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:120px;font-weight:900;color:var(--fg);pointer-events:none}#cd:empty{display:none}
+input[type=file]{position:absolute;opacity:0;width:1px;height:1px}
+.cal{font-size:12px;color:var(--mut);display:block;text-align:left}.cal input{width:100%;margin:2px 0 0;accent-color:var(--acc)}input:disabled,.seg button:disabled{opacity:.35}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;width:100%;margin-top:8px}.w{width:100%}details{width:100%;color:var(--mut);font-size:13px}summary{cursor:pointer;padding:4px}.hint{font-size:11px;max-width:none;margin-top:6px;text-align:left}.sm{padding:6px 10px;font-size:12px;background:transparent;color:var(--fg);border-color:var(--mut)}.sm.on{background:var(--acc);border-color:var(--acc);color:#fff}@media (max-height:520px){.sub{display:none}h1{font-size:30px}}
+#hSc,#hCb,#hJd{position:absolute;pointer-events:none;font-weight:900;color:var(--fg)}#hSc{left:14px;top:6px;font-size:26px}#hCb{left:0;right:0;top:18%;text-align:center;font-size:28px;color:var(--mut)}#hJd{left:0;right:0;top:calc(80% - 96px);text-align:center;font-size:28px;opacity:0}#hud{position:absolute;left:14px;top:40px;font-size:12px;line-height:1.35;font-weight:700;color:var(--mut);pointer-events:none;white-space:pre}
+#gd{position:fixed;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:44px;height:44px;padding:0;border-radius:50%;font-size:20px;z-index:20}#gd[hidden]{display:none}
+#gd.new{animation:bk 1.1s infinite}@keyframes bk{0%,100%{box-shadow:0 0 0 0 rgba(255,79,135,.8);transform:scale(1)}50%{box-shadow:0 0 0 10px rgba(255,79,135,0);transform:scale(1.12)}}
+#lg{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:20;padding:8px 12px;font-size:12px;border-radius:20px}#lg[hidden]{display:none}.ov.sc .in{padding-bottom:60px}
+.eb{display:flex;flex-wrap:wrap;gap:4px;padding:4px 6px;align-items:center;justify-content:center}.eb button,.eb select,.eb input{padding:5px 8px;font-size:12px;border-radius:8px;max-width:100%}.eb input[type=number],.eb input[type=text],.eb input[type=password]{width:70px;background:var(--bg);color:var(--fg);border:1px solid var(--mut)}.eb [hidden]{display:none}.eb .on{background:var(--acc);color:#fff;border-color:var(--acc)}#ec{flex:1;width:100%;touch-action:none;min-height:0}#ed{padding:0;gap:0;align-items:stretch;justify-content:flex-start;z-index:15}
+#lib{padding:0;gap:0;align-items:stretch;justify-content:flex-start;z-index:14}#lbt{flex:1;overflow-y:auto;text-align:left;padding:0 6px 60px}.lh{font-size:12px;color:var(--acc);padding:8px 4px 2px;font-weight:700}.li{padding:7px 8px;border-radius:8px;cursor:pointer}.li:active{background:rgba(255,255,255,.1)}.li b{display:block;font-size:14px}.li span{font-size:11px;color:var(--mut)}
+#bgg,#spc{position:absolute;inset:0;width:100%;height:100%}#bgg{z-index:-2;background-color:var(--bg);background-size:cover;background-position:center}#spc{z-index:-1}#bgg[hidden],#spc[hidden]{display:none}
+#bgm{position:absolute;inset:0;overflow:hidden;background:var(--bg)}#bgm[hidden]{display:none}#bgm img,#bgm video{width:100%;height:100%;object-fit:cover;display:block}
+#menu.hasbg{background:transparent}#menu.hasbg>.in{background:color-mix(in srgb,var(--bg) 80%,transparent);border-radius:18px;padding:14px 14px 60px}
+#cr{font-size:10px;line-height:1.35;color:var(--mut);text-align:left;align-self:stretch}#cr b{color:var(--acc);font-size:11px}#cr a{color:var(--acc)}
+#emin{position:absolute;top:6px;right:6px;display:none;gap:4px;z-index:16}#ed.emin #emin{display:flex}#ed.emin>.eb,#ed.emin>#ehint{display:none}#emin button{padding:6px 10px;font-size:12px;border-radius:8px}
+#pe:disabled{opacity:.35;pointer-events:none}
+.ov>*:not(canvas),#hud,#pause,#lg,#gd{zoom:var(--ui,1)}
+.gt{font-size:13px;line-height:1.45;color:var(--fg)}.gt h3{margin:12px 0 2px;font-size:14px;color:var(--acc)}.gt p{max-width:none;margin:0;color:var(--mut);font-size:13px}.gt b{color:var(--fg)}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="bgg" hidden></div><canvas id="spc" hidden></canvas><canvas id="cv"></canvas>
+<div id="hSc"></div><div id="hCb"></div><div id="hJd"></div><div id="hud"></div>
+<button id="pause" hidden>Jeda</button><div id="cd"></div>
+<div id="bgm" hidden></div>
+<div class="ov sc" id="menu"><div class="in">
+<div id="cr"><b>ALPHA 0.0.1 Public Test</b><br>This game is FULLY MADE WITH AI. Prompted by Vordius_42 using Claude Sonnet 5.5. (please don't hate me for this)<br>Kode sumber dan unduh game: <a href="https://github.com/vordius42/Beatfall-HTML" target="_blank" rel="noopener noreferrer">github.com/vordius42/Beatfall-HTML</a></div>
+<h1>Beatfall</h1>
+<p class="sub">Pilih lagu dari HP-mu, nadanya dibuat otomatis dari beat.</p>
+<label class="btn alt"><input type="file" id="file" accept="audio/*,.flac,.mp3,.wav,.ogg,.m4a,.aac,.opus">Pilih file musik</label>
+<p id="st">Mendukung MP3, WAV, OGG, M4A, dan FLAC (tergantung browser).</p>
+<div class="seg"><button class="sm" id="vsb">Tampilan</button><button class="sm" id="lbb">Folder musik</button><button class="sm" id="edb">Editor level</button><label class="btn alt" style="padding:6px 10px;font-size:12px"><input type="file" id="lvf" accept=".bfl,.json,application/json" hidden>Muat level</label><button class="sm" id="lvx" hidden>Lepas level</button></div>
+<div class="seg" id="seg"><button data-d="easy">Mudah</button><button data-d="normal" class="on">Sedang</button><button data-d="hard">Sulit</button><button data-d="multi">Multi-jari</button></div>
+<div class="seg" id="opt"><button data-o="lg">Note panjang</button><button data-o="su">Berkelanjutan</button><button data-o="ld" disabled>Panjang ganda</button><button data-o="db">Note ganda</button></div>
+<label class="cal w">Kecepatan: <b id="spv">1.0</b>x, skor ×<b id="smv">1.0</b><input type="range" id="sp" min="1" max="4" step="0.1" value="1"></label>
+<details id="adv"><summary>Pengaturan lanjutan</summary><div class="grid">
+<label class="cal">Jeda note panjang: <b id="hgv">0.7</b> d<input type="range" id="hg" min="0.3" max="1.2" step="0.05" value="0.7"></label>
+<label class="cal">Sensitivitas beat: <b id="snv">100</b>%<input type="range" id="sn" min="50" max="400" step="10" value="100"></label>
+<label class="cal">Deteksi nada: <b id="psv">100</b>%<input type="range" id="ps" min="0" max="200" step="10" value="100"></label>
+<label class="cal">Kalibrasi: <b id="ov">0</b> ms<input type="range" id="cal" min="-200" max="200" step="5" value="0"></label>
+<div><button class="sm" id="xt">Eksperimen: note ikut kecepatan</button></div>
+<div><button class="sm" id="xb" disabled>Eksperimen: sambung note panjang</button></div>
+<div><button class="sm" id="gm">Grafik: Otomatis</button></div>
+<div><button class="sm" id="au">Mode uji (auto-main)</button></div>
+<div style="grid-column:1/-1"><div class="cal">Tampilan saat main</div><div class="seg" id="hudo"><button data-h="fps">FPS</button><button data-h="acc">Akurasi</button><button data-h="miss">Miss</button><button data-h="mx">Kombo tertinggi</button><button data-h="cb">Kombo saat ini</button></div></div></div>
+<p class="hint" id="snh">Sensitivitas: makin tinggi, makin banyak beat terdeteksi (terkunci saat eksperimen note ikut kecepatan aktif). Kalibrasi: geser kanan jika ketukanmu sering terlambat, kiri jika terlalu cepat. Keyboard: D F J K.</p></details>
+<button id="go" disabled>Mulai main</button>
+</div></div>
+<div class="ov" id="end" hidden>
+<h2 id="gr">S</h2>
+<p id="sm"></p>
+<button id="again">Main lagi</button>
+<button class="alt" id="back">Pilih lagu lain</button>
+<button class="alt" id="pe2" hidden>Kembali ke editor</button>
+</div>
+<div class="ov" id="ed" hidden>
+<div class="eb" id="etop"><input id="ea" type="text" maxlength="40" data-ph="Nama pembuat" data-pe="Creator name" placeholder="Nama pembuat" style="width:100px"><input id="ep" type="password" autocomplete="new-password" data-ph="Password edit (opsional)" data-pe="Edit password (optional)" placeholder="Password edit (opsional)" style="width:130px"><label class="btn alt" style="padding:5px 8px;font-size:12px"><input type="file" id="ebg" accept="image/*,.gif" hidden>Background level</label><button id="ebx" hidden>Hapus BG</button><button id="ehd">Sembunyikan menu</button></div>
+<div class="eb"><input id="et" type="text" data-ph="Judul" data-pe="Title" placeholder="Judul" style="width:110px"><input id="eb" type="number" step="0.1" placeholder="BPM" title="BPM"><input id="eo" type="number" placeholder="Offset ms" title="Offset ms"><button id="ed1">Deteksi BPM</button><button id="ehx">½×</button><button id="e2x">2×</button></div>
+<div class="eb"><button data-e="pan" class="on">Geser</button><button data-e="tap">Biasa</button><button data-e="long">Panjang</button><button data-e="link">Sambung</button><button data-e="del">Hapus</button><button id="efin" hidden>Selesai</button><select id="es"><option value="0">Bebas</option><option value="1">1/1</option><option value="2">1/2</option><option value="3">1/3</option><option value="4" selected>1/4</option><option value="6">1/6</option><option value="8">1/8</option></select><button id="egr" class="on">Garis</button><button id="ezo">−</button><button id="ezi">+</button></div>
+<div id="ehint" style="text-align:center;padding:0 6px;font-size:11px;color:var(--mut)"></div>
+<canvas id="ec"></canvas>
+<div class="eb"><button id="epl">▶</button><button id="epv">‹</button><input type="range" id="epos" min="0" max="100" step="0.01" value="0" style="flex:1;min-width:80px"><button id="enx">›</button><span id="etm" style="font-size:11px;color:var(--mut)"></span></div>
+<div class="eb"><button id="erec">Rekam</button><button id="eaut">Impor otomatis</button><button id="esv">Simpan</button><button id="esb">Simpan+musik</button><button id="ets">Uji main</button><button id="ecl">Tutup</button></div>
+<div id="emin"><button id="emp">▶</button><button id="emx">Menu</button></div>
+</div>
+<div class="ov" id="lib" hidden>
+<div class="eb"><button id="lbx">Tutup</button><button id="lbd">Pilih folder</button><button id="lbl" hidden></button><label class="btn alt" style="padding:5px 8px;font-size:12px"><input type="file" id="lbf" accept="audio/*,.flac,.mp3,.wav,.ogg,.m4a,.aac,.opus" multiple hidden>Pilih beberapa file</label><input type="file" id="lbdi" webkitdirectory multiple hidden></div>
+<div class="eb"><input id="lbs" type="text" data-ph="Cari lagu" data-pe="Search songs" placeholder="Cari lagu" style="flex:1;min-width:90px;width:auto"><select id="lbo"><option value="title">Judul</option><option value="artist">Artis</option><option value="album">Album</option><option value="name">Nama file</option></select></div>
+<div id="lbi" style="padding:2px 8px;font-size:11px;color:var(--mut);text-align:center"></div>
+<div id="lbt"></div>
+</div>
+<div class="ov sc" id="vis" hidden><div class="in" style="align-items:stretch;text-align:left">
+<h2 style="font-size:26px;text-align:center">Tampilan</h2>
+<label class="cal">Skala UI: <b id="uiv">100</b>%<input type="range" id="ui" min="70" max="150" step="5" value="100"></label>
+<div class="cal">Background menu utama</div>
+<div class="seg" style="justify-content:flex-start"><label class="btn alt" style="padding:6px 10px;font-size:12px"><input type="file" id="mbf" accept="image/*,video/*,.gif" hidden>Pilih gambar/video/GIF</label><button class="sm" id="mbx">Hapus background</button></div>
+<div class="cal">Background gameplay</div>
+<select id="gbm"><option value="solid">Polos</option><option value="image">Gambar</option><option value="level">Ikuti level kustom</option><option value="spectrum">Spektrum</option></select>
+<div id="gbi" class="seg" style="justify-content:flex-start"><label class="btn alt" style="padding:6px 10px;font-size:12px"><input type="file" id="gbf" accept="image/*,.gif" hidden>Pilih gambar</label><button class="sm" id="gbx">Hapus background</button></div>
+<div id="spo">
+<label class="cal">Sensitivitas: <b id="ssv">100</b>%<input type="range" id="sps" min="20" max="300" step="10" value="100"></label>
+<label class="cal">Jumlah bar: <b id="snb">64</b><input type="range" id="spn" min="32" max="128" step="8" value="64"></label>
+<div class="grid"><label class="cal">Orientasi<br><select id="spr"><option value="h">Horizontal</option><option value="v">Vertikal</option></select></label><label class="cal">Posisi<br><select id="spp"><option value="0">Bawah</option><option value="1">Tengah</option><option value="2">Atas</option></select></label></div>
+<div class="cal">Warna <input type="color" id="spc1" value="#ff4f87"> <label style="margin-left:8px"><input type="checkbox" id="spcr"> Pelangi</label></div>
+</div>
+<p class="hint">Background disimpan di browser jika browser mengizinkan; jika tidak, hanya berlaku selama sesi ini.</p>
+<button id="vsx" style="align-self:center">Tutup</button>
+</div></div>
+<div class="ov dim" id="pwo" hidden style="z-index:30"><p id="pwt" style="max-width:30ch"></p><input id="pwi" type="password" autocomplete="off" style="font-size:16px;padding:8px;width:200px;border-radius:8px;border:1px solid var(--mut);background:var(--bg);color:var(--fg)"><div class="seg"><button id="pwok">Buka</button><button class="alt" id="pwno">Batal</button></div></div>
+<div class="ov sc" id="gdp" hidden><div class="in" style="align-items:stretch;justify-content:flex-start;text-align:left"><button class="alt" id="gdx" style="align-self:center">Tutup panduan</button><div class="gt">
+<h3>Dasar</h3><p>Pilih file musik, pilih tingkat kesulitan, lalu Mulai main. Ketuk lajur (atau tombol D F J K) saat note menyentuh garis. Note panjang harus ditahan sampai selesai.</p>
+<h3>Tingkat kesulitan</h3><p>Mudah, Sedang, dan Sulit: makin tinggi makin padat. Multi-jari: boleh memakai lebih dari 2 jari.</p>
+<h3>Opsi note</h3><p><b>Note panjang</b>: note yang ditahan; muncul di lajur berbeda setiap kali nada lagu berubah. <b>Berkelanjutan</b>: nada panjang dalam lagu menjadi note panjang besar, dan note panjang lain bisa muncul di dalamnya. <b>Panjang ganda</b>: dua note panjang bersamaan dan note biasa diblokir; hanya bisa aktif jika Note panjang aktif, dan menggantikan Note ganda. <b>Note ganda</b>: dua note ketuk bersamaan.</p>
+<h3>Kecepatan</h3><p>1x sampai 4x. Makin cepat, skor makin besar. Di atas 2.5x ada peringatan.</p>
+<h3>Pengaturan lanjutan</h3><p><b>Jeda note panjang</b>: jarak minimum antar note panjang. <b>Sensitivitas beat</b>: makin tinggi makin banyak beat terdeteksi (terkunci saat eksperimen kecepatan aktif). <b>Kalibrasi</b>: geser kanan jika ketukanmu sering terlambat, kiri jika terlalu cepat. <b>Eksperimen note ikut kecepatan</b>: jumlah note bertambah mengikuti kecepatan. <b>Eksperimen sambung note panjang</b>: dua atau tiga note panjang di lajur berbeda disambung jadi satu; geser jarimu ke lajur baru tanpa melepas (di keyboard, tekan tombol lajur baru). Perlu Note panjang aktif. <b>Mode uji</b>: game memainkan chart sendiri supaya kamu bisa melihat kemunculan note tanpa bermain; statistik chart tampil di kiri atas. <b>Grafik</b>: Otomatis, Tinggi, atau Rendah; pilih Rendah jika game terasa berat. <b>Tampilan saat main</b>: tampilkan FPS, akurasi, miss, kombo tertinggi, dan kombo saat ini.</p>
+<h3>Editor level</h3><p>Buka Editor level setelah memilih musik. Game membaca BPM untuk memasang garis ketukan; geser layar untuk menggulir waktu, lalu pilih alat: Biasa (ketuk), Panjang (titik awal lalu akhir), Sambung (titik awal, titik pindah lajur, titik akhir, lalu Selesai), atau Hapus. Tombol Rekam memutar lagu dan mencatat permainanmu: ketuk jadi note biasa, tahan jadi note panjang, tahan dan geser jadi note sambung. Simpan menghasilkan file level (hanya nada), Simpan+musik menyertakan musiknya. Level tanpa musik hanya bisa dimainkan jika kamu memilih file musik dengan judul yang sesuai. Muat level untuk membuka file level.</p>
+<p>Di bagian atas editor kamu bisa mengisi nama pembuat dan password edit (opsional). Level dengan password tidak bisa dibuka di editor tanpa password itu, tetapi ini hanya perlindungan di dalam game, bukan enkripsi file. Background level juga opsional dan dipakai saat bermain jika Background gameplay diatur ke Ikuti level kustom. Tombol Sembunyikan menu memperluas area chart; tombol Menu di pojok kanan atas memunculkannya kembali.</p>
+<h3>Tampilan dan background</h3><p>Tombol Tampilan di menu mengatur skala UI, background menu utama (gambar, video yang dibisukan, atau GIF), dan background gameplay: Polos, Gambar, Ikuti level kustom, atau Spektrum. Spektrum punya pengaturan sensitivitas, jumlah bar (32–128), orientasi, posisi, dan warna (atau pelangi). Background disimpan di browser jika browser mengizinkan.</p>
+<h3>Deteksi nada</h3><p>Slider Deteksi nada (0–200%) mengatur seberapa kuat game memakai perubahan nada untuk menaruh dan memindahkan note panjang. 0% = seperti sebelum fitur ini ada, 100% = normal, 200% = eksperimen. Hasilnya berbeda tiap lagu; coba ubah bersama sensitivitas beat.</p>
+<p>Tombol Garis menampilkan garis interval berwarna sesuai pilihan 1/1 sampai 1/8 (merah = ketukan, biru = 1/2, ungu = 1/3 dan 1/6, kuning = 1/4, oranye = 1/8). Saat Uji main dijeda atau selesai, ada tombol Kembali ke editor.</p>
+<h3>Folder musik</h3><p>Tombol Folder musik membuka daftar lagu dari folder pilihanmu, dengan judul, artis, dan album dari metadata, pencarian, dan pengurutan. Di browser yang mendukungnya, folder terakhir diingat; di browser lain (termasuk kebanyakan Android) kamu perlu memilih ulang folder tiap sesi.</p>
+<h3>Saat bermain</h3><p>Tombol Jeda (atau Esc/P) membuka menu: Lanjutkan (hitung mundur 3 detik), Ulangi lagu, ganti grafik, atau Keluar. Game juga jeda otomatis jika kamu pindah aplikasi.</p>
+</div></div></div>
+<button id="gd" class="new" aria-label="Panduan">?</button><button id="lg">Bahasa/Languages</button>
+<div class="ov dim" id="pz" hidden><h2>Jeda</h2><button id="rs">Lanjutkan</button><button class="alt" id="rp">Ulangi lagu</button><button class="alt" id="gp">Grafik: Otomatis</button><button class="alt" id="pe" disabled>Kembali ke editor</button><button class="alt" id="ex">Keluar ke menu</button></div>
+<div class="ov" id="warn" hidden>
+<h2 style="font-size:38px">Kecepatan tinggi</h2>
+<p id="wt"></p>
+<button id="wy">Tetap pakai</button>
+<button class="alt" id="wn">Turunkan ke 2.5x</button>
+</div>
+</div>
+<script>
+const $=id=>document.getElementById(id),cv=$('cv'),g=cv.getContext('2d');
+const D={easy:{k:1.7,gap:.36},normal:{k:1.45,gap:.27},hard:{k:1.2,gap:.2},multi:{k:1.1,gap:.15}};
+let FALL=1.5;const LEAD=2,WP=.07,WG=.15,COL=['#ff4f87','#ffb02e','#2ec4a0','#4a8cff'];
+let AC,buf,fname='',notes=[],diff='normal',st,run=false,src,t0=0,idx=0,theme={},off=0,D0=null,sc=0,holds=[0,0,0,0],LG=false,DB=false,LD=false,XB=false,SC=Math.min(devicePixelRatio||1,1.5),CW=0,CH=0,fa=16.7,lt0=0,slow=0,good=0,LQ=false,lsc=-1,lcb=-1,ljs=0,hSc,hCb,hJd,spr=[],HG=.7,SU=false,SP=1,SM=1,XT=false,ACK=false,wcb=null,paused=false,SN=1,cdt=0,HUD={fps:0,acc:0,miss:0,mx:0,cb:1},hnx=0,GM='auto',SCH=Math.min(devicePixelRatio||1,1.5),TC={},AUTO=false,CI='',PE=0,CB=false,CBI=false,SPEC=false;
+function rt(){const s=getComputedStyle(document.documentElement);['--bg','--fg','--mut','--lane','--line'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
+rt();matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{rt();fit()});
+const bgc=document.createElement('canvas');
+function fit(){const r=$('stage').getBoundingClientRect();CW=r.width;CH=r.height;$('spc').width=Math.round(CW);$('spc').height=Math.round(CH);cv.width=bgc.width=Math.round(CW*SC);cv.height=bgc.height=Math.round(CH*SC);g.setTransform(SC,0,0,SC,0,0);
+ const b=bgc.getContext('2d'),lw=CW/4,hy=CH*.8;b.setTransform(SC,0,0,SC,0,0);if(!CB){b.fillStyle=theme['--bg'];b.fillRect(0,0,CW,CH)}else if(CBI){b.fillStyle='rgba(0,0,0,.4)';b.fillRect(0,0,CW,CH)}
+ b.globalAlpha=CB?.4:1;for(let l=0;l<4;l+=2){b.fillStyle=theme['--lane'];b.fillRect(l*lw,0,lw,CH)}b.globalAlpha=1
+ b.fillStyle=theme['--line'];b.fillRect(0,hy-1.5,CW,3);b.fillStyle=theme['--mut'];b.font='600 16px sans-serif';b.textAlign='center';
+ for(let l=0;l<4;l++)b.fillText('DFJK'[l],l*lw+lw/2,hy+34);
+ const sw=lw-12,sh=Math.min(90,CH*.11);spr=COL.map(c=>{const s=document.createElement('canvas');s.width=Math.ceil(sw*SC);s.height=Math.ceil(sh*SC);const x=s.getContext('2d');x.scale(SC,SC);x.fillStyle=c;x.beginPath();x.roundRect?x.roundRect(1.5,1.5,sw-3,sh-3,12):x.rect(1.5,1.5,sw-3,sh-3);x.fill();x.lineWidth=3;x.strokeStyle=theme['--fg'];x.stroke();return s});fa=16.7;slow=0}
+addEventListener('resize',fit);fit();
+const setS=t=>$('st').textContent=t,fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+async function loadMusic(f,meta){if(!f)return;
+ $('go').disabled=true;setS('Membaca file…');
+ try{AC=AC||new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  const b2=await AC.decodeAudioData(await f.arrayBuffer()),n2=f.name.replace(/\.[^.]+$/,'');
+  if(LV&&!LV.audio&&![n2,meta&&meta.title].some(c=>c&&lvMatch(LV,c,b2))){setS('Musik tidak cocok dengan judul level: '+LV.title);return}
+  if(LV&&LV.audio){LV=null;LVOK=false}
+  buf=b2;fname=meta&&meta.title||n2;lastFile=f;if(LV&&!LV.audio){LVOK=true;useLevel();return}
+  await new Promise(r=>setTimeout(r,30));analyze();
+ }catch(x){buf=null;setS('File ini tidak bisa dibaca. Formatnya mungkin tidak didukung browser/HP-mu. Coba MP3 atau WAV.')}}
+$('file').onchange=e=>loadMusic(e.target.files[0]);
+$('seg').onclick=e=>{const d=e.target.dataset.d;if(!d)return;diff=d;[...$('seg').children].forEach(b=>b.classList.toggle('on',b.dataset.d===d));if(buf)analyze()};
+function analyze0(){
+ const sr=buf.sampleRate,n=buf.length,hop=512,d0=buf.getChannelData(0),d1=buf.numberOfChannels>1?buf.getChannelData(1):d0;
+ const H=Math.floor(n/hop),E=[0,1,2].map(()=>new Float32Array(H));
+ const a1=1-Math.exp(-2*Math.PI*250/sr),a2=1-Math.exp(-2*Math.PI*2500/sr);let y1=0,y2=0;
+ for(let h=0;h<H;h++){let s0=0,s1=0,s2=0;
+  for(let i=h*hop,e=i+hop;i<e;i++){const x=(d0[i]+d1[i])*.5;y1+=a1*(x-y1);y2+=a2*(x-y2);const m=y2-y1,v=x-y2;s0+=y1*y1;s1+=m*m;s2+=v*v}
+  E[0][h]=Math.sqrt(s0/hop);E[1][h]=Math.sqrt(s1/hop);E[2][h]=Math.sqrt(s2/hop)}
+ const cfg=D[diff],win=Math.round(.5*sr/hop),xx=XT?SP:SN,DF=1+(xx-1)*(xx>1?({easy:.15,normal:.25,hard:.5,multi:.5})[diff]:.5),HE=Math.max(.3,HG/Math.sqrt(1+(xx-1)*.5)),PL=Math.min(.8,.6+(xx-1)*.07),LM=Math.min(SU?.28:.33,.25+(xx-1)*.03),PD=Math.min(.8,.45+(xx-1)*.1);let c=[];
+ for(let b=0;b<3;b++){const e=E[b],f=new Float32Array(H),p=new Float64Array(H+1);
+  for(let i=1;i<H;i++)f[i]=Math.max(0,e[i]-e[i-1]);
+  for(let i=0;i<H;i++)p[i+1]=p[i]+f[i];
+  for(let i=2;i<H-2;i++){const a=Math.max(0,i-win),z=Math.min(H,i+win),m=(p[z]-p[a])/(z-a);
+   if(f[i]>m*cfg.k/Math.sqrt(DF)+1e-4&&f[i]>=f[i-1]&&f[i]>=f[i+1])c.push({t:i*hop/sr,b,s:f[i]/(m+1e-4)})}}
+ c.sort((u,v)=>u.t-v.t);notes=[];
+ const cap=({easy:[3,1],normal:[4,2],hard:[6,3],multi:[7,3]})[diff].map(v=>v*DF),ok=new Uint8Array(c.length);
+ c.map((o,i)=>i).sort((a,b)=>c[b].s-c[a].s).forEach(i=>{const t=c[i].t;if(t<.6)return;let n1=0,n2=0;
+  for(let j=i-1;j>=0&&t-c[j].t<.5;j--)if(ok[j]){n1++;if(t-c[j].t<.2)n2++}
+  for(let j=i+1;j<c.length&&c[j].t-t<.5;j++)if(ok[j]){n1++;if(c[j].t-t<.2)n2++}
+  if(n1<cap[0]&&n2<cap[1])ok[i]=1});
+ c=c.filter((o,i)=>ok[i]);
+ let last=-9,al=0,ah=0,am=0,pl=-1,cl=0;
+ for(const o of c){const need=cfg.gap/DF*(1.3-.6*Math.min(1,Math.max(0,(o.s-1.5)/3)))*(cl>=2?1.8:1);if(o.t<.6||o.t-last<need)continue;cl=o.t-last<cfg.gap/DF*1.15?cl+1:0;let l;
+  if(o.b===0)l=al++%2;else if(o.b===2)l=2+(ah++%2);else l=(pl+1+(am++%2))%4;
+  if(l===pl&&o.t-last<.3)l=(l+1)%4;
+  notes.push({t:o.t,l,d:0,hit:0});last=o.t;pl=l}
+ const hs=i=>((i*2654435761)>>>0)%1000/1000;const MF=diff==='multi';const bl=l=>l===1?0:l===2?3:-1;
+ const held=(t,l)=>notes.some(m=>m.d&&(m.l===l||bl(m.l)===l)&&t>=m.t-.05&&t<=m.t+m.d+.05);
+ const busy=t=>notes.some(m=>m.d&&t>=m.t-.1&&t<=m.t+m.d+.25);
+ const sus=[];
+ if(LG&&SU){const L=E[0].length,ev=new Float32Array(L),sm=new Float32Array(L),w=8;let a=0;
+  for(let i=0;i<L;i++)ev[i]=E[0][i]+E[1][i];
+  for(let i=0;i<L;i++){a+=ev[i];if(i>=w)a-=ev[i-w];sm[i]=a/Math.min(i+1,w)}
+  const so=Float32Array.from(sm).sort(),thr=so[Math.floor(L*.85)]*.5,W2=Math.round(.3*sr/hop),segs=[];let s0=-1;
+  for(let i=0;i<=L;i++){let ok=false;if(i<L){let mn=1e9;for(let j=Math.max(0,i-W2);j<=Math.min(L-1,i+W2);j+=2)if(sm[j]<mn)mn=sm[j];ok=mn>=thr}
+   if(ok&&s0<0)s0=i;if(!ok&&s0>=0){segs.push([s0*hop/sr,i*hop/sr]);s0=-1}}
+  let tot=0;
+  for(const [q0,q1] of segs){if(q1-q0<1.4)continue;let t=q0+.15;const e=q1-.15;
+   while(e-t>=1.2){const d=Math.min(e-t,5);if(tot+d>buf.duration*.35)break;tot+=d;
+    let h=notes.find(n=>!n.d&&Math.abs(n.t-t)<.3);
+    if(!h){h={t,l:0,d:0,hit:0};notes.push(h)}
+    h.l=hs(sus.length+7)<.85?(sus.length%2?3:0):1+sus.length%2;
+    h.d=d;h.su=1;sus.push(h);t=Math.max(t,h.t)+d+HE}}
+  notes.sort((x,y)=>x.t-y.t)}
+ if(LG){let end=-1,cov=0,rm=0;const lim=buf.duration*LM;for(let i=0;i<notes.length;i++){const n=notes[i];if(n.d||n.t<end+HE||hs(i)>=PL)continue;const sm=sus.find(m=>n.t>m.t-1.5&&n.t<m.t+m.d+HE);let cap=9;if(sm){if(n.t<sm.t+.2||n.l===sm.l||n.l===bl(sm.l)||bl(n.l)===sm.l||sm.t+sm.d-.1-n.t<.4)continue;cap=sm.t+sm.d-.1-n.t}
+  let pc=0;for(let j=i-1;j>=0&&n.t-notes[j].t<=.25;j--)pc++;
+  if(MF){let nx=buf.duration;for(let j=i+1;j<notes.length;j++)if(notes[j].l===n.l){nx=notes[j].t;break}
+   const d=Math.min(nx-n.t-.2,1.4,cap);if(d>=.3&&cov+d<=lim){n.d=d;end=n.t+d;cov+=d}continue}
+  for(let k=0;k<3&&pc+k<=2;k++){const nn=notes[i+1+k],d=Math.min((nn?nn.t:buf.duration)-n.t-.3,1.2,cap);if(d>=.4&&cov+d<=lim){n.d=d;end=n.t+d;cov+=d;break}}if(!n.d&&xx>1){const d=Math.min(1.2,.5+(xx-1)*.15,cap);let c=0;for(const m of notes)if(m!==n&&m.t>=n.t-.25&&m.t<=n.t+d+.25)c++;if(d>=.4&&c<=3&&rm+c<=notes.length*.08&&cov+d<=lim){n.d=d;end=n.t+d;cov+=d;rm+=c}}}
+  if(sus.length){let q=0;for(const m of sus){const ln=[0,1,2,3].filter(l=>l!==m.l&&l!==bl(m.l)&&bl(l)!==m.l);if(!ln.length)continue;let t=m.t+.3;
+   while(m.t+m.d-.1-t>=.5){const d=Math.min(.5+hs(Math.floor(m.t*100)+q)*.5,m.t+m.d-.1-t),l=ln[Math.floor(hs(q+31)*ln.length)];q++;
+    if(hs(q+55)<.75&&!notes.some(o=>o!==m&&o.d&&o.t<t+d+HE&&o.t+o.d+HE>t))notes.push({t,l,d,hit:0});
+    t+=d+Math.max(HE,.35)+.3}}
+  notes.sort((a,b)=>a.t-b.t)}
+  const sp=notes.filter(m=>m.d&&!m.su),ss=notes.filter(m=>m.su);
+  if(sp.length&&!MF)notes=notes.filter(n=>n.d||!sp.some(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25));
+  if(sp.length&&MF){let lt=-9;notes=notes.filter(n=>{if(n.d)return true;if(sp.some(m=>n.t>=m.t-.12&&n.t<m.t+.1))return false;if(sp.some(m=>bl(m.l)===n.l&&n.t>=m.t-.25&&n.t<=m.t+m.d+.25))return false;if(!sp.some(m=>n.t>=m.t&&n.t<=m.t+m.d+.1))return true;if(n.t-lt<.22)return false;lt=n.t;return true})}
+  if(ss.length){let lt=-9;notes=notes.filter(n=>{if(n.d)return true;const m=ss.find(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25);if(!m)return true;if(n.l===m.l||n.l===bl(m.l)||n.t<m.t+.2||n.t>m.t+m.d-.1)return false;if(n.t-lt<(MF?.3:.45)/Math.sqrt(DF))return false;lt=n.t;return true})}}
+ if(!(LG&&PS>0))PE=0;
+ if(LG&&PS>0){const tt=TCg(),ev=tt.evAt(PS),lo=notes.filter(m=>m.d),PK=SU?.6:1;PE=ev.length;let rb=0,cvP=0;const insu=m=>lo.some(o=>o.su&&o.t<m.t+m.d+HE&&o.t+o.d+HE>m.t),nw=[],rg=notes.filter(m=>m.d&&!m.su);
+  for(const e of ev){if(rg.some(m=>Math.abs(m.t-e.t)<.4))continue;const nx=ev.find(q=>q.t>e.t+.2),d=Math.max(.5,Math.min(1.1,(nx?nx.t:e.t+1.4)-e.t-.3));
+   if(lo.some(o=>e.t-.05<o.t+o.d+HE&&e.t+d+HE>o.t))continue;
+   const n=notes.find(q=>!q.d&&Math.abs(q.t-e.t)<=.25),t0=n?n.t:e.t;let c=0;for(const o of notes)if(!o.d&&o!==n&&o.t>=t0-.25&&o.t<=t0+d+.25)c++;
+   if(c>4||rb+c>notes.length*.1*PS*PK||cvP+d>buf.duration*.12*PS*PK)continue;
+   const m=n||{t:e.t,l:e.l,hit:0};m.d=d;m.l=e.l;if(!n)notes.push(m);rb+=c;cvP+=d;lo.push(m);rg.push(m);nw.push(m)}
+  {let rb2=0,cv2=0;for(let i=0;i<ev.length;i++){const s=ev[i].t,e=i+1<ev.length?ev[i+1].t:buf.duration,len=e-s;if(len<.6)continue;
+   let cnt=0;for(const o of notes)if(!o.d&&o.t>=s+.05&&o.t<=e-.1)cnt++;if(cnt<3)continue;
+   let m=rg.find(q=>Math.abs(q.t-s)<.4&&!q.pt&&!q.su);const t0=m?m.t:s+.02,d=Math.min(e-.15-t0,2.4);if(d<.5||(m&&d<=m.d))continue;
+   if(lo.some(o=>o!==m&&o.t<t0+d+HE&&o.t+o.d+HE>t0))continue;
+   if(rb2+cnt>notes.length*.25*PS*PK||cv2+d>buf.duration*.2*PS*PK)continue;
+   if(!m){m={t:t0,l:ev[i].l,hit:0};notes.push(m);lo.push(m);rg.push(m)}m.d=d;rb2+=cnt;cv2+=d;nw.push(m)}}
+  rg.sort((a,b)=>a.t-b.t);let pl=-1,pt=-9;
+  for(const m of rg){if(m.pt||insu(m))continue;let l=tt.lane(m.t);const chg=ev.some(e=>e.t>pt&&e.t<=m.t+.3);
+   if(pl>=0&&chg&&l===pl){const dr=tt.dir(m.t);l=dr>=0?(pl<3?pl+1:pl-1):(pl>0?pl-1:pl+1)}
+   if(hs(Math.floor(m.t*100)+9)<Math.min(1,PS))m.l=l;pl=m.l;pt=m.t}
+  notes.sort((a,b)=>a.t-b.t);notes=notes.filter(n=>n.d||!nw.some(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25))}
+ if(LG&&XB){const lo=notes.filter(m=>m.d),rg2=lo.filter(m=>!m.su&&!m.pt).sort((a,b)=>a.t-b.t),used=new Set();
+  for(let i=0;i<rg2.length;i++){const A=rg2[i];if(used.has(A)||lo.some(o=>o.su&&o.t<A.t+A.d+HE&&o.t+o.d+HE>A.t))continue;let end=A.t+A.d,l=A.l,a=A.t,j=i+1;const p=[];
+   const mj=xx>=3?2:1;while(j<rg2.length&&p.length<2){const B=rg2[j];let b2=B.l;if(Math.abs(b2-l)>mj)b2=l+Math.sign(b2-l)*mj;if(b2===l||B.t-end>1||B.t<end)break;if(lo.some(o=>o.su&&o.t<B.t+B.d+HE&&o.t+o.d+HE>A.t))break;p.push({a,b:B.t,l});a=B.t;l=b2;end=B.t+B.d;used.add(B);j++}
+   if(p.length){p.push({a,b:end,l});A.path=p;A.pt=1;A.d=end-A.t}}
+  notes=notes.filter(n=>!used.has(n));const bw=notes.filter(m=>m.pt);notes=notes.filter(n=>n.d||!bw.some(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25))}
+ if(LG&&LD){const add=[],ov=(o,m)=>o.d&&o.t<m.t+m.d+HE&&o.t+o.d+HE>m.t,all=()=>notes.concat(add),dw=[];
+  {let rm2=0,e2=-1;const lp0=notes.filter(m=>m.d),bd=notes.length*(.05+(xx-1)*.03),d=Math.min(1.2,.5+(Math.max(xx,1)-1)*.15);let cv=lp0.filter(m=>!m.su).reduce((a,m)=>a+m.d,0);
+   for(let i=0;i<notes.length;i++){const n=notes[i];if(n.d||n.t<e2+HE||hs(i+777)>=.5||cv+d>buf.duration*.22)continue;if(lp0.some(m=>n.t<m.t+m.d+HE&&n.t+d+HE>m.t))continue;
+    let c=0;for(const m of notes)if(!m.d&&m!==n&&m.t>=n.t-.25&&m.t<=n.t+d+.25)c++;
+    if(c>6||rm2+c>bd)continue;n.d=d;n.dp=1;e2=n.t+d;rm2+=c;cv+=d;lp0.push(n)}}
+  notes.filter(m=>m.d&&!m.su).forEach((m,i)=>{if(m.pt||!m.dp&&hs(i+4242)>=PD||notes.some(o=>o.su&&ov(o,m)))return;const cs=m.l<2?[2,3]:[0,1],r=Math.floor(hs(i+17)*2),c=[cs[r],cs[1-r]].find(c=>!all().some(o=>o!==m&&ov(o,m)&&(o.l===c||bl(o.l)===c||bl(c)===o.l)));if(c===undefined)return;
+   add.push({t:m.t,l:c,d:m.d,hit:0});dw.push(m);
+   if(MF&&hs(i+99)<.35){const x=[0,1,2,3].find(x=>x!==m.l&&x!==c&&!all().some(o=>o!==m&&ov(o,m)&&o.l===x));if(x!==undefined)add.push({t:m.t,l:x,d:m.d,hit:0})}});
+  notes=notes.concat(add).sort((a,b)=>a.t-b.t);notes=notes.filter(n=>n.d||!dw.some(m=>n.t>=m.t-.25&&n.t<=m.t+m.d+.25))}
+ if((DB&&!LD)||MF){const pr=({easy:.08,normal:.14,hard:.2,multi:.22})[diff],ex=[];notes.forEach((n,i)=>{if(i>0&&!n.d&&(MF||!busy(n.t))&&hs(i+977)<pr){let ln=-1;for(let k=0;k<3&&ln<0;k++){const c=(n.l+1+(Math.floor(hs(i+31)*3)+k)%3)%4;if(!held(n.t,c))ln=c}if(ln>=0){ex.push({t:n.t,l:ln,d:0,hit:0});if(MF&&!busy(n.t)&&hs(i+555)<.3){for(let c2=0;c2<4;c2++)if(c2!==n.l&&c2!==ln&&!held(n.t,c2)){ex.push({t:n.t,l:c2,d:0,hit:0});break}}}}});notes=notes.concat(ex).sort((a,b)=>a.t-b.t)}
+ {const sl=.22/Math.sqrt(DF),hd=notes.filter(m=>m.d),ll=[-9,-9,-9,-9];notes=notes.filter(n=>{if(!n.d&&hd.some(m=>m.l===n.l&&m.t>n.t&&m.t-n.t<sl))return false;if(!n.d&&n.t-ll[n.l]<sl)return false;ll[n.l]=n.d?n.t+n.d:n.t;return true})}
+ setS(fname+' ('+fmt(buf.duration)+', '+notes.length+' nada)'+(notes.length<8?'. Terlalu sedikit beat terdeteksi, coba tingkat Sulit.':''));
+ $('go').disabled=notes.length<8}
+function start(){try{src&&src.stop()}catch(e){}applyGB();
+ AC.resume();D0=null;sc=0;lt0=0;lsc=-1;lcb=-1;ljs=0;notes.forEach(n=>{n.hit=0;n.br=0});idx=0;holds=[0,0,0,0];
+ st={sc:0,cb:0,mx:0,p:0,g:0,o:0,m:0,fl:[0,0,0,0],jt:'',jc:0,jts:-9999};
+ src=AC.createBufferSource();src.buffer=buf;if(SPEC){if(!ANL)ANL=AC.createAnalyser();ANL.fftSize=2048;ANL.smoothingTimeConstant=.78;src.connect(ANL);ANL.connect(AC.destination)}else src.connect(AC.destination);t0=AC.currentTime+LEAD;src.start(t0);
+ $('menu').hidden=$('end').hidden=$('pz').hidden=true;$('pause').hidden=false;paused=false;clearInterval(cdt);cdt=0;$('cd').textContent='';lcb=-1;hnx=0;$('gd').hidden=$('lg').hidden=true;$('bgm').hidden=true;CI='Note '+notes.length+', panjang '+notes.filter(m=>m.d&&!m.su).length+', sambung '+notes.filter(m=>m.path).length+'\nGanda '+notes.filter(m=>m.dp).length+', berkelanjutan '+notes.filter(m=>m.su).length+', nada berubah '+PE;run=true;loop()}
+function stop(){run=false;paused=false;$('hud').textContent='';$('gd').hidden=$('lg').hidden=false;if($('bgm').dataset.on)$('bgm').hidden=false;clearInterval(cdt);cdt=0;$('cd').textContent='';$('pz').hidden=true;try{src.stop()}catch(e){}$('pause').hidden=true}
+function jd(t,c){st.jt=t;st.jc=c;st.jts=performance.now()}
+function sync(){if(AC.state!=='running')return;
+ const d=AC.currentTime-(AC.outputLatency||0)-(AC.baseLatency||0)-performance.now()/1000;
+ sc++;if(D0!==null&&sc>30&&Math.abs(d-D0)>.25)return;
+ D0=D0===null?d:D0+(d-D0)*Math.max(.03,1/sc)}
+function clk(p){return D0===null?AC.currentTime-t0:p/1000+D0-t0}
+function loop(){if(!run||paused)return;const nw=performance.now();if(lt0){fa+=(nw-lt0-fa)*.05;if(GM==='auto'){if(fa>28){good=0;if(++slow>150){slow=0;fa=16.7;if(SC>1){SC=Math.max(1,SC-.25);fit()}else LQ=true}}else{slow=0;if(LQ&&fa<20&&++good>600){good=0;LQ=false}}}}lt0=nw;sync();const T=clk(performance.now()),J=T-off;
+ if(AUTO){for(let i=idx;i<notes.length;i++){const n=notes[i];if(n.t>J+.02)break;if(n.hit)continue;n.hit=n.d?2:1;if(n.d){holds[n.l]=n;n.ok=J}st.fl[n.l]=1;st.p++;st.sc+=300;jd('PERFECT',0);st.cb++;st.mx=Math.max(st.mx,st.cb);st.sc+=Math.min(st.cb,50)*5}
+  for(let l=0;l<4;l++){const h=holds[l];if(h&&h.path){const e=laneAt(h,J+.05);if(e!==l&&!holds[e]){holds[e]=h;holds[l]=0;h.ok=J}}}}
+ for(let i=idx;i<notes.length;i++){const n=notes[i];if(n.t>J)break;if(!n.hit&&J-n.t>WG){n.hit=-1;st.m++;st.cb=0;jd('MISS',2)}}
+ while(idx<notes.length&&notes[idx].hit)idx++;
+ for(let l=0;l<4;l++){const n=holds[l];if(!n)continue;if(J>=n.t+n.d){holds[l]=0;n.hit=1;st.sc+=200;st.cb++;st.mx=Math.max(st.mx,st.cb);jd('HOLD',0)}else{if(n.path){if(laneAt(n,J)===l)n.ok=J;else if(J-n.ok>.3){holds[l]=0;n.hit=1;n.br=1;st.cb=0;jd('BREAK',2);continue}}st.sc+=2}}
+ draw(T);if(T>buf.duration+.8)return finish();requestAnimationFrame(loop)}
+function tap(l,p){if(!run||paused)return;const T=clk(p||performance.now())-off;st.fl[l]=1;for(let o=0;o<4;o++){const h=holds[o];if(h&&h.path&&o!==l&&!holds[l]&&(laneAt(h,T)===l||laneAt(h,T+.2)===l)){holds[l]=h;holds[o]=0;return}}let b=null,bd=9;
+ for(let i=idx;i<notes.length;i++){const n=notes[i];if(n.t>T+FALL)break;if(n.l!==l||n.hit)continue;b=n;bd=Math.abs(n.t-T);break}
+ if(!b)return;b.hit=b.d>0?2:1;if(b.d>0){holds[l]=b;b.ok=T}
+ if(bd<=WP){st.p++;st.sc+=300;jd('PERFECT',0)}else if(bd<=WG){st.g++;st.sc+=100;jd('GOOD',1)}else{st.o++;st.sc+=30;jd('OK',3)}
+ st.cb++;st.mx=Math.max(st.mx,st.cb);st.sc+=Math.min(st.cb,50)*5}
+function rr(x,y,w,h,r,b){g.beginPath();g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h);g.fill();if(b&&!LQ){g.lineWidth=3;g.strokeStyle=b;g.stroke()}}
+function laneAt(n,t){const p=n.path;for(const s of p)if(t<s.b)return s.l;return p[p.length-1].l}
+function drawPath(n,T,hd,hl){const hy=CH*.8,lw=CW/4,nh=Math.min(90,CH*.11),yy=x=>hy-(x-T)/FALL*hy;
+ n.path.forEach((s,i)=>{const a=hd?Math.max(s.a,T):s.a;if(s.b<=a)return;g.fillStyle=COL[s.l];rr(s.l*lw+6,yy(s.b)-nh/2,lw-12,yy(a)-yy(s.b)+nh,12,theme['--fg']);
+  const p=n.path[i+1];if(p&&p.a>=a){g.fillStyle=COL[p.l];const x0=Math.min(s.l,p.l)*lw+lw/2,x1=Math.max(s.l,p.l)*lw+lw/2;rr(x0,yy(p.a)-nh/2,x1-x0,nh,12,theme['--fg'])}});
+ if(hd){g.globalAlpha=.5;g.fillStyle='#fff';rr(hl*lw+6,hy-nh/2,lw-12,nh,12);g.globalAlpha=1}}
+function tonalTrack(){const sr=buf.sampleRate,f=Math.max(1,Math.round(sr/5512)),rt=sr/f,ST=.125,N=Math.floor(buf.duration/ST),W=1536,d0=buf.getChannelData(0),x=new Float32Array(W),hw=new Float32Array(W);
+ for(let j=0;j<W;j++)hw[j]=.5-.5*Math.cos(2*Math.PI*j/W);
+ const co=[];for(let b=0;b<48;b++)co.push(2*Math.cos(2*Math.PI*130.81*Math.pow(2,b/12)/rt));
+ const nz=[],bn=new Int16Array(N).fill(-1);
+ for(let k=0;k<N;k++){const v=new Float32Array(12),s0=Math.floor(k*ST*sr);
+  if(s0+W*f<d0.length){let e0=0;for(let j=0;j<W;j++){let a=0;for(let q=0;q<f;q++)a+=d0[s0+j*f+q];x[j]=a/f*hw[j];e0+=x[j]*x[j]}
+   if(e0/W>1e-6){let bm=0;for(let b=0;b<48;b++){let s1=0,s2=0;const c=co[b];for(let j=0;j<W;j++){const s=x[j]+c*s1-s2;s2=s1;s1=s}const m=Math.sqrt(Math.max(0,s1*s1+s2*s2-c*s1*s2));v[b%12]+=m;if(m>bm){bm=m;bn[k]=b}}}}
+  let n2=0;for(const q of v)n2+=q*q;n2=Math.sqrt(n2)||1;for(let j=0;j<12;j++)v[j]/=n2;nz.push(v)}
+ const mean=(a,b)=>{const r=new Float32Array(12);for(let i=Math.max(0,a);i<=Math.min(N-1,b);i++)for(let j=0;j<12;j++)r[j]+=nz[i][j];return r};
+ const cos=(p,q)=>{let a=0,b=0,c=0;for(let j=0;j<12;j++){a+=p[j]*q[j];b+=p[j]*p[j];c+=q[j]*q[j]}return a/(Math.sqrt(b*c)||1)};
+ const dd=new Float32Array(N);for(let k=2;k<N-2;k++)dd[k]=1-cos(mean(k-2,k-1),mean(k,k+1));
+ const sd=Array.from(dd.slice(2,Math.max(3,N-2))).sort((a,b)=>a-b);
+ const vs=Array.from(bn).filter(v=>v>=0).sort((a,b)=>a-b),q=[.25,.5,.75].map(p=>vs[Math.floor(vs.length*p)]||0);
+ const pb=k=>{for(let o=0;o<3;o++)for(const kk of [k-o,k+o])if(kk>=0&&kk<N&&bn[kk]>=0){const v=bn[kk];return v<q[0]?0:v<q[1]?1:v<q[2]?2:3}return 1};
+ const md=(a,b)=>{const v=[];for(let i=Math.max(0,a);i<=Math.min(N-1,b);i++)if(bn[i]>=0)v.push(bn[i]);if(!v.length)return -1;v.sort((p,r)=>p-r);return v[v.length>>1]};
+ const dr=k=>{const p=md(k-3,k-1),a=md(k,k+2);return p<0||a<0?0:Math.sign(a-p)};
+ const evAt=ps=>{const th=Math.max(.05,sd[Math.floor(sd.length*Math.max(.5,Math.min(.97,.82-(ps-1)*.12)))]||.08),sp=Math.max(.4,.7-(ps-1)*.25),ev=[];let last=-9;for(let k=3;k<N-3;k++)if(dd[k]>=th&&dd[k]>=dd[k-1]&&dd[k]>=dd[k+1]&&k*ST-last>sp){ev.push({t:k*ST,l:pb(k+1),dir:dr(k)});last=k*ST}return ev};
+ return{evAt,lane:t=>pb(Math.floor(t/ST)+1),dir:t=>dr(Math.floor(t/ST))}}
+function TCg(){if(TC.b!==buf)TC={b:buf,v:tonalTrack()};return TC.v}
+function draw(T){const W=CW,H=CH,hy=H*.8,lw=W/4,nh=Math.min(90,H*.11);
+ if(CB)g.clearRect(0,0,W,H);g.drawImage(bgc,0,0,W,H);if(SPEC)drawSpec();
+ for(let l=0;l<4;l++){
+  const f=st.fl[l];if(f>0){g.globalAlpha=f*.4;g.fillStyle=COL[l];g.fillRect(l*lw,hy-H*.25,lw,H*.25+(H-hy));g.globalAlpha=1;st.fl[l]=Math.max(0,f-.08)}}
+ for(let i=idx;i<notes.length;i++){const n=notes[i],dt=n.t-T;if(dt>FALL)break;if(n.hit>0)continue;
+  const yh=hy-dt/FALL*hy,yt=n.d?hy-(dt+n.d)/FALL*hy:yh;g.globalAlpha=n.hit===-1?.25:1;g.fillStyle=COL[n.l];
+  if(!n.d)g.drawImage(spr[n.l],n.l*lw+6,yh-nh/2,lw-12,nh);else if(n.path)drawPath(n,T,0);else rr(n.l*lw+6,yt-nh/2,lw-12,yh-yt+nh,12,theme['--fg']);if(n.d&&!n.path){g.globalAlpha*=.35;g.fillStyle='#fff';rr(n.l*lw+lw/2-4,yt,8,yh-yt,4)}g.globalAlpha=1}
+ for(let l=0;l<4;l++){const n=holds[l];if(!n)continue;if(n.path){drawPath(n,T,1,l);g.globalAlpha=1;continue}const yt=hy-(n.t+n.d-T)/FALL*hy;g.fillStyle=COL[l];rr(l*lw+6,yt-nh/2,lw-12,hy-yt+nh/2,12,theme['--fg']);g.globalAlpha=.5;g.fillStyle='#fff';rr(l*lw+6,hy-nh/2,lw-12,nh,12);g.globalAlpha=1}
+ g.fillStyle=COL[0];g.fillRect(0,0,W*Math.max(0,Math.min(1,T/buf.duration)),4);
+ if(st.sc!==lsc){lsc=st.sc;hSc.textContent=Math.round(lsc*SM)}
+ if(st.cb!==lcb){lcb=st.cb;hCb.textContent=lcb>1&&HUD.cb?lcb+' kombo':''}const hudT=performance.now();if(hudT>hnx){hnx=hudT+250;upHud()}
+ const a=1-(performance.now()-st.jts)/600;
+ if(st.jts!==ljs){ljs=st.jts;hJd.textContent=st.jt;hJd.style.color=['#2ec4a0','#4a8cff','#ff4f87','#ffb02e'][st.jc]}hJd.style.opacity=a>0?a:0}
+function finish(){stop();const t=notes.length,acc=(st.p+st.g*.6+st.o*.3)/t*100,gr=acc>=95?'S':acc>=85?'A':acc>=70?'B':acc>=50?'C':'D';
+ $('gr').textContent=gr;
+ $('sm').textContent=fname+'. Skor '+Math.round(st.sc*SM)+' (kecepatan '+SP.toFixed(1)+'x), akurasi '+acc.toFixed(1)+'%, kombo terbaik '+st.mx+'. Perfect '+st.p+', Good '+st.g+', OK '+st.o+', Miss '+st.m+'.';
+ $('end').hidden=false}
+const ptr={};
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect(),l=Math.min(3,Math.max(0,Math.floor((e.clientX-r.left)/r.width*4)));ptr[e.pointerId]=l;tap(l,e.timeStamp)});
+cv.addEventListener('pointermove',e=>{const o=ptr[e.pointerId];if(o===undefined||!run||paused)return;const r=cv.getBoundingClientRect(),l=Math.min(3,Math.max(0,Math.floor((e.clientX-r.left)/r.width*4))),h=holds[o];if(l===o||!h||!h.path||holds[l])return;const T=clk(e.timeStamp)-off;if(laneAt(h,T)===l||laneAt(h,T+.2)===l){holds[l]=h;holds[o]=0;ptr[e.pointerId]=l;st.fl[l]=1}});
+function rel(l,p){const n=holds[l];if(!n||!run||paused)return;const J=clk(p||performance.now())-off;holds[l]=0;n.hit=1;
+ if(J>=n.t+n.d-.12){st.sc+=200;st.cb++;st.mx=Math.max(st.mx,st.cb);jd('HOLD',0)}else{n.br=1;st.cb=0;jd('BREAK',2)}}
+const pu=e=>{const l=ptr[e.pointerId];if(l!==undefined){delete ptr[e.pointerId];rel(l,e.timeStamp)}};
+addEventListener('pointerup',pu);addEventListener('pointercancel',pu);
+addEventListener('keydown',e=>{if(e.repeat)return;const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0)tap(l,e.timeStamp)});
+addEventListener('keyup',e=>{const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0)rel(l,e.timeStamp)});
+hSc=$('hSc');hCb=$('hCb');hJd=$('hJd');$('go').onclick=()=>chk(start);$('again').onclick=start;
+$('hg').oninput=e=>{HG=+e.target.value;$('hgv').textContent=HG.toFixed(2).replace(/0$/,'');try{localStorage.setItem('bf_hg',e.target.value)}catch(x){}};
+$('hg').onchange=()=>{if(buf&&LG)analyze()};
+$('sp').oninput=e=>{SP=+e.target.value;SM=SP;FALL=1.5/SP;if(SP<=2.5)ACK=false;$('spv').textContent=SP.toFixed(1);$('smv').textContent=SP.toFixed(1);try{localStorage.setItem('bf_sp',e.target.value)}catch(x){}};
+$('sp').onchange=()=>chk(()=>{if(buf&&XT)analyze()});
+function chk(cb){if(SP>2.5&&!ACK){$('wt').textContent='Kecepatan '+SP.toFixed(1)+'x sangat cepat dan sulit dimainkan oleh pemain biasa. Nada hanya terlihat sekitar '+(1.5/SP).toFixed(2)+' detik sebelum mengenai garis. Lanjutkan?';wcb=cb;$('warn').hidden=false}else cb()}
+$('wy').onclick=()=>{ACK=true;$('warn').hidden=true;const f=wcb;wcb=null;f&&f()};
+$('wn').onclick=()=>{wcb=null;$('sp').value=2.5;$('sp').oninput({target:$('sp')});$('warn').hidden=true;if(buf&&XT)analyze()};
+$('xt').onclick=e=>{XT=!XT;e.target.classList.toggle('on',XT);$('sn').disabled=XT;$('snv').textContent=XT?'—':Math.round(SN*100);if(buf)analyze()};
+$('sn').oninput=e=>{SN=e.target.value/100;$('snv').textContent=e.target.value;try{localStorage.setItem('bf_sn',e.target.value)}catch(x){}};$('sn').onchange=()=>{if(buf&&!XT)analyze()};
+try{const v=localStorage.getItem('bf_sn');if(v!==null){$('sn').value=v;$('sn').oninput({target:$('sn')})}}catch(x){}
+try{const v=localStorage.getItem('bf_sp');if(v!==null){$('sp').value=v;$('sp').oninput({target:$('sp')})}}catch(x){}
+try{const v=localStorage.getItem('bf_hg');if(v!==null){$('hg').value=v;$('hg').oninput({target:$('hg')})}}catch(x){}
+$('opt').onclick=e=>{const o=e.target.dataset.o;if(!o)return;const B=k=>$('opt').querySelector('[data-o='+k+']');
+ if(o==='lg'){LG=!LG;if(!LG){SU=false;LD=false}}else if(o==='db'){DB=!DB;if(DB)LD=false}else if(o==='ld'){if(!LG)return;LD=!LD;if(LD)DB=false}else{SU=!SU;if(SU)LG=true}
+ B('lg').classList.toggle('on',LG);B('db').classList.toggle('on',DB);B('su').classList.toggle('on',SU);B('ld').classList.toggle('on',LD);B('ld').disabled=!LG;$('xb').disabled=!LG;if(!LG){XB=false;$('xb').classList.remove('on')}if(buf)analyze()};
+$('cal').oninput=e=>{off=e.target.value/1000;$('ov').textContent=e.target.value;try{localStorage.setItem('bf_cal',e.target.value)}catch(x){}};
+try{const v=localStorage.getItem('bf_cal');if(v!==null){$('cal').value=v;$('cal').oninput({target:$('cal')})}}catch(x){}
+$('back').onclick=()=>{$('end').hidden=true;$('menu').hidden=false};
+function pauseG(){if(!run||paused)return;paused=true;AC.suspend();holds.forEach((n,l)=>{if(n){n.hit=1;n.br=1;holds[l]=0;st.cb=0}});$('pz').hidden=false}
+function resumeG(){if(!paused||cdt)return;$('pz').hidden=true;let c=3;$('cd').textContent=c;cdt=setInterval(()=>{c--;if(c>0){$('cd').textContent=c;return}clearInterval(cdt);cdt=0;$('cd').textContent='';AC.resume().then(()=>{if(!paused)return;paused=false;D0=null;sc=0;lt0=0;loop()}).catch(()=>{})},1000)}
+$('pause').onclick=pauseG;$('rs').onclick=resumeG;
+function upHud(){const s=st,n=s.p+s.g+s.o+s.m,r=[];if(HUD.fps)r.push('FPS '+Math.round(1000/fa));if(HUD.acc)r.push('Akurasi '+(n?((s.p+s.g*.6+s.o*.3)/n*100).toFixed(1):'100.0')+'%');if(HUD.miss)r.push('Miss '+s.m);if(HUD.mx)r.push('Kombo tertinggi '+s.mx);if(AUTO){r.push('MODE UJI');r.push(CI)}$('hud').textContent=r.join('\n')}
+$('hudo').onclick=e=>{const h=e.target.dataset.h;if(!h)return;HUD[h]=HUD[h]?0:1;e.target.classList.toggle('on',!!HUD[h]);try{localStorage.setItem('bf_hud',JSON.stringify(HUD))}catch(x){}};
+try{const v=JSON.parse(localStorage.getItem('bf_hud'));if(v)Object.assign(HUD,v)}catch(x){}
+document.querySelectorAll('#hudo button').forEach(b=>b.classList.toggle('on',!!HUD[b.dataset.h]));
+$('xb').onclick=e=>{if(!LG)return;XB=!XB;e.target.classList.toggle('on',XB);if(buf)analyze()};
+$('gd').onclick=()=>{$('gdp').hidden=false;$('gd').hidden=true;$('gd').classList.remove('new');try{localStorage.setItem('bf_gd','1')}catch(e){}};
+$('gdx').onclick=()=>{$('gdp').hidden=true;$('gd').hidden=false};
+try{if(localStorage.getItem('bf_gd'))$('gd').classList.remove('new')}catch(e){}
+const GL={auto:'Otomatis',high:'Tinggi',low:'Rendah'},GN=['auto','high','low'];
+function setG(m){GM=m;LQ=m==='low';SC=m==='low'?1:SCH;fit();$('gm').textContent=$('gp').textContent='Grafik: '+GL[m];try{localStorage.setItem('bf_gm',m)}catch(e){}}
+$('au').onclick=e=>{AUTO=!AUTO;e.target.classList.toggle('on',AUTO)};
+$('gm').onclick=$('gp').onclick=()=>setG(GN[(GN.indexOf(GM)+1)%3]);
+try{const v=localStorage.getItem('bf_gm');setG(v&&GL[v]?v:'auto')}catch(e){}$('rp').onclick=()=>{$('pz').hidden=true;start()};$('ex').onclick=()=>{stop();$('menu').hidden=false};
+addEventListener('keydown',e=>{if(e.repeat)return;if(e.key==='Escape'||e.key.toLowerCase()==='p')paused?resumeG():pauseG()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseG()});
+/* ===== Level custom, editor, bahasa ===== */
+let LV=null,LVOK=false,lastFile=null,EN=[],EBPM=120,EOFF=0,ET=0,ETOOL='pan',EPLAY=0,ESRC=null,EST=0,EBASE=0,EREC=0,ESN=4,EZ=220,EW=300,EH=400,EB=null,EPAN=null,LANG='id',etl='';
+const EPTR={},ER={},ec=$('ec'),ge=ec.getContext('2d');
+const nrm=s=>String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+function lvMatch(L,name,b){const a=nrm(name),t=nrm(L.title);return !!a&&!!t&&(a.includes(t)||t.includes(a))&&(!L.dur||Math.abs(b.duration-L.dur)<3)}
+function normLevel(o){if(!o||!Array.isArray(o.notes))throw 0;const ok=Number.isFinite,nt=[];
+ for(const n of o.notes){if(!ok(n.t)||n.t<0||!(n.l>=0&&n.l<=3))continue;const r={t:n.t,l:n.l|0};if(ok(n.d)&&n.d>0){r.d=n.d;if(Array.isArray(n.path)){const p=n.path.filter(q=>ok(q.a)&&ok(q.b)&&q.b>q.a&&q.l>=0&&q.l<=3).map(q=>({a:q.a,b:q.b,l:q.l|0}));if(p.length>1)r.path=p}}nt.push(r)}
+ if(!nt.length)throw 0;return{v:1,title:String(o.title||'level').slice(0,80),dur:+o.dur||0,bpm:+o.bpm||120,off:+o.off||0,notes:nt,audio:typeof o.audio==='string'&&o.audio.startsWith('data:')?o.audio:null,author:typeof o.author==='string'?o.author.slice(0,40):'',pw:o.pw&&/^[0-9a-f]+$/.test(String(o.pw.s))&&/^[0-9a-f]{64}$/.test(String(o.pw.h))?{s:o.pw.s,h:o.pw.h}:null,bg:typeof o.bg==='string'&&/^data:image\//.test(o.bg)&&o.bg.length<6e6?o.bg:null}}
+function useLevel(){notes=LV.notes.map(n=>{const o={t:n.t,l:n.l,d:n.d||0,hit:0};if(n.path)o.path=n.path.map(q=>({a:q.a,b:q.b,l:q.l}));return o}).sort((a,b)=>a.t-b.t);PE=0;$('go').disabled=false;$('lvx').hidden=false;setS('Level: '+LV.title+(LV.author?' \u2014 '+LV.author:'')+(LV.pw?' \uD83D\uDD12':'')+' ('+fmt(buf.duration)+', '+notes.length+' nada)')}
+function analyze(){if(LV&&!LVOK)return;if(LVOK){useLevel();return}analyze0()}
+$('lvx').onclick=()=>{LV=null;LVOK=false;$('lvx').hidden=true;if(buf)analyze();else setS('Mendukung MP3, WAV, OGG, M4A, dan FLAC (tergantung browser).')};
+$('lvf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const o=normLevel(JSON.parse(await f.text()));AC=AC||new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+  if(o.audio){$('go').disabled=true;setS('Membaca file\u2026');buf=await AC.decodeAudioData(await(await fetch(o.audio)).arrayBuffer());fname=o.title;lastFile=null;LV=o;LVOK=true;useLevel()}
+  else{LV=o;if(buf&&lvMatch(o,fname,buf)){LVOK=true;useLevel()}else{LVOK=false;$('go').disabled=true;$('lvx').hidden=false;setS('Pilih file musik yang sesuai dengan judul level: '+o.title)}}
+ }catch(x){setS('Level tidak valid.')}};
+/* ----- deteksi BPM ----- */
+function detBPM(){const sr=buf.sampleRate,hop=512,H=Math.floor(buf.length/hop),d=buf.getChannelData(0),f=new Float32Array(H);let pe=0;
+ for(let h=0;h<H;h++){let e=0;for(let i=h*hop,z=i+hop;i<z;i++)e+=d[i]*d[i];e=Math.sqrt(e/hop);f[h]=Math.max(0,e-pe);pe=e}
+ const fps=sr/hop;let best=0,bb=120,bo=0;
+ for(let bpm=70;bpm<=190;bpm+=.25){const per=60/bpm*fps;let bs=0,bp=0;
+  for(let q=0;q<16;q++){const ph=per*q/16;let s=0,c=0;for(let t=ph;t<H-1;t+=per){s+=f[Math.round(t)];c++}s/=Math.max(1,c);if(s>bs){bs=s;bp=ph}}
+  const w=Math.exp(-.5*Math.pow(Math.log2(bpm/125)/.6,2)),sc=bs*w;if(sc>best){best=sc;bb=bpm;bo=bp/fps}}
+ return{bpm:Math.round(bb*10)/10,off:bo}}
+/* ----- editor ----- */
+const esn=()=>ESN?60/EBPM/ESN:0,snap=t=>{const q=esn();return q?EOFF+Math.round((t-EOFF)/q)*q:t},qn=x=>ESN?snap(x):x;
+const EH_={pan:'Geser layar untuk menggulir waktu. Pilih alat untuk menaruh note.',tap:'Ketuk lajur untuk menaruh note biasa.',long:'Ketuk titik awal, lalu titik akhir note panjang.',link:'Ketuk titik awal, titik pindah lajur, lalu titik akhir, kemudian Selesai.',del:'Ketuk note untuk menghapusnya.',rec:'Merekam: ketuk = note biasa, tahan = note panjang, tahan dan geser = note sambung.'};
+function edFit(){const r=ec.getBoundingClientRect(),k=Math.min(devicePixelRatio||1,2);ec.width=Math.max(1,r.width*k);ec.height=Math.max(1,r.height*k);ge.setTransform(k,0,0,k,0,0);EW=r.width;EH=r.height}
+const edSegs=n=>n.path||[{a:n.t,b:n.t+(n.d||0),l:n.l}];
+function edDraw(){const hy=EH*.75,lw=EW/4,yy=t=>hy-(t-ET)*EZ,bl=60/EBPM;ge.clearRect(0,0,EW,EH);
+ for(let l=0;l<4;l++){ge.fillStyle=l%2?'rgba(255,255,255,.04)':'rgba(255,255,255,.08)';ge.fillRect(l*lw,0,lw,EH)}
+ const q=ESN>1?bl/ESN:bl,nn=ESN>1?ESN:1,i0=Math.ceil((ET-(EH-hy)/EZ-EOFF)/q),i1=Math.floor((ET+hy/EZ-EOFF)/q);ge.font='10px sans-serif';
+ for(let i=i0;i<=i1;i++){const beat=i%nn===0,kb=Math.round(i/nn),y=yy(EOFF+i*q);if(!beat&&(!EGR||EZ*q<6))continue;
+  ge.strokeStyle=beat?(EGR?DC[1]:(kb%4===0?'rgba(255,255,255,.4)':'rgba(255,255,255,.13)')):(DC[ESN]||'#fff');ge.globalAlpha=beat?(kb%4===0?1:.55):.6;ge.lineWidth=beat&&kb%4===0?2:1;
+  ge.beginPath();ge.moveTo(0,y);ge.lineTo(EW,y);ge.stroke();ge.globalAlpha=1;ge.lineWidth=1;if(beat&&kb%4===0){ge.fillStyle='rgba(255,255,255,.6)';ge.fillText(String(kb),2,y-2)}}
+ for(const n of EN){if(yy(n.t)<-40||yy(n.t+(n.d||0))>EH+40)continue;
+  if(!n.d){ge.fillStyle=COL[n.l];ge.fillRect(n.l*lw+4,yy(n.t)-8,lw-8,16);continue}
+  const sg=edSegs(n);sg.forEach((q,i)=>{ge.fillStyle=COL[q.l];ge.globalAlpha=.85;ge.fillRect(q.l*lw+4,yy(q.b),lw-8,yy(q.a)-yy(q.b));const p=sg[i+1];if(p){const x0=Math.min(q.l,p.l)*lw+lw/2,x1=Math.max(q.l,p.l)*lw+lw/2;ge.fillRect(x0,yy(p.a)-8,x1-x0,16)}ge.globalAlpha=1})}
+ if(EB){ge.fillStyle='#fff';(EB.v||[EB]).forEach(q=>ge.fillRect(q.l*lw+lw/2-6,yy(q.t)-6,12,12))}
+ ge.strokeStyle=COL[0];ge.lineWidth=2;ge.beginPath();ge.moveTo(0,hy);ge.lineTo(EW,hy);ge.stroke();ge.lineWidth=1}
+function edUi(){document.querySelectorAll('.eb [data-e]').forEach(b=>b.classList.toggle('on',b.dataset.e===ETOOL&&!EREC));$('erec').classList.toggle('on',!!EREC);$('epl').textContent=EPLAY&&!EREC?'\u275a\u275a':'\u25b6';$('efin').hidden=!(ETOOL==='link'&&EB&&EB.v&&EB.v.length>=3);$('ehint').textContent=EREC?EH_.rec:EH_[ETOOL];$('emp').textContent=$('epl').textContent}
+function edLoop(){if($('ed').hidden)return;if(EPLAY){ET=EBASE+Math.max(0,AC.currentTime-EST);if(ET>=buf.duration){ET=buf.duration;edStop()}}
+ edDraw();const t=fmt(ET)+' / '+fmt(buf.duration)+' \u00b7 '+EN.length;if(t!==etl){etl=t;$('etm').textContent=t}if(EPLAY)$('epos').value=ET;requestAnimationFrame(edLoop)}
+function edPlay(rec){if(!buf)return;edStop();if(ET>=buf.duration-.2)ET=0;AC.resume();ESRC=AC.createBufferSource();ESRC.buffer=buf;ESRC.connect(AC.destination);EBASE=ET;EST=AC.currentTime+.05;ESRC.start(EST,ET);EPLAY=1;EREC=rec?1:0;EB=null;edUi()}
+function edStop(){if(ESRC){try{ESRC.stop()}catch(x){}ESRC=null}if(EREC)for(const k of Object.keys(ER))recUp(k);EPLAY=0;EREC=0;edUi()}
+function recDown(id,l){ER[id]={l,t0:ET-off,segs:[{a:ET-off,l}],cur:l}}
+function recMove(id,l){const r=ER[id];if(!r||l===r.cur)return;const t=ET-off;r.segs[r.segs.length-1].b=t;r.segs.push({a:t,l});r.cur=l}
+function recUp(id){const r=ER[id];if(!r)return;delete ER[id];const t1=ET-off;
+ if(t1-r.t0<.18&&r.segs.length===1){EN.push({t:Math.max(0,qn(r.t0)),l:r.l});return}
+ r.segs[r.segs.length-1].b=t1;let a=r.segs.filter(q=>q.b-q.a>.05).slice(0,3);if(!a.length)a=[r.segs[0]];
+ const tb=[Math.max(0,qn(r.t0))];for(let i=0;i<a.length-1;i++)tb.push(qn(a[i].b));tb.push(qn(t1));
+ for(let i=1;i<tb.length;i++)if(tb[i]<=tb[i-1]+.05)tb[i]=tb[i-1]+.05;
+ const sg=a.map((q,i)=>({a:tb[i],b:tb[i+1],l:q.l})),d=tb[tb.length-1]-tb[0];
+ if(d<.1){EN.push({t:tb[0],l:a[0].l});return}
+ EN.push(sg.length>1?{t:tb[0],l:a[0].l,d,path:sg}:{t:tb[0],l:a[0].l,d})}
+function edFin(){if(EB&&EB.v&&EB.v.length>=3){const v=EB.v,sg=[];for(let i=0;i<v.length-1;i++)sg.push({a:v[i].t,b:v[i+1].t,l:v[i].l});EN.push({t:v[0].t,l:v[0].l,d:v[v.length-1].t-v[0].t,path:sg})}EB=null;edUi()}
+const laneOf=e=>{const r=ec.getBoundingClientRect();return Math.min(3,Math.max(0,Math.floor((e.clientX-r.left)/r.width*4)))};
+ec.addEventListener('pointerdown',e=>{const r=ec.getBoundingClientRect(),y=e.clientY-r.top,l=laneOf(e);try{ec.setPointerCapture(e.pointerId)}catch(x){}
+ if(EREC){EPTR[e.pointerId]=l;recDown(e.pointerId,l);return}
+ if(ETOOL==='pan'){EPAN={id:e.pointerId,y,et:ET};return}
+ const raw=ET+(EH*.75-y)/EZ,t=Math.max(0,snap(raw));
+ if(ETOOL==='tap'){if(!EN.some(n=>n.l===l&&!n.d&&Math.abs(n.t-t)<.03))EN.push({t,l})}
+ else if(ETOOL==='del'){const tol=16/EZ,i=EN.findIndex(n=>edSegs(n).some(q=>q.l===l&&raw>=q.a-tol&&raw<=q.b+tol));if(i>=0)EN.splice(i,1)}
+ else if(ETOOL==='long'){if(!EB)EB={t,l};else{if(t>EB.t+.05)EN.push({t:EB.t,l:EB.l,d:t-EB.t});EB=null}}
+ else if(ETOOL==='link'){if(!EB)EB={v:[{t,l}]};else if(t>EB.v[EB.v.length-1].t+.05){EB.v.push({t,l});if(EB.v.length>=4)edFin()}}
+ edUi()});
+ec.addEventListener('pointermove',e=>{if(EREC){const l=laneOf(e);if(EPTR[e.pointerId]!==undefined&&EPTR[e.pointerId]!==l){EPTR[e.pointerId]=l;recMove(e.pointerId,l)}return}
+ if(EPAN&&EPAN.id===e.pointerId&&!EPLAY){const y=e.clientY-ec.getBoundingClientRect().top;ET=Math.min(buf.duration,Math.max(0,EPAN.et+(y-EPAN.y)/EZ));$('epos').value=ET}});
+addEventListener('pointerup',e=>{if(EPTR[e.pointerId]!==undefined){delete EPTR[e.pointerId];recUp(e.pointerId)}if(EPAN&&EPAN.id===e.pointerId)EPAN=null});
+addEventListener('keydown',e=>{if(!EREC||e.repeat||e.target.tagName==='INPUT')return;const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0&&!ER['k'+l])recDown('k'+l,l)});
+addEventListener('keyup',e=>{const l='dfjk'.indexOf(e.key.toLowerCase());if(l>=0&&ER['k'+l])recUp('k'+l)});
+document.querySelectorAll('.eb [data-e]').forEach(b=>b.onclick=()=>{ETOOL=b.dataset.e;EB=null;if(EREC)edStop();edUi()});
+$('efin').onclick=edFin;$('es').onchange=e=>{ESN=+e.target.value};
+$('ezi').onclick=()=>{EZ=Math.min(900,EZ*1.25)};$('ezo').onclick=()=>{EZ=Math.max(60,EZ*.8)};
+$('epl').onclick=()=>EPLAY?edStop():edPlay(0);$('erec').onclick=()=>EREC?edStop():edPlay(1);
+$('epos').oninput=e=>{if(EPLAY)edStop();ET=+e.target.value};
+$('epv').onclick=()=>{if(EPLAY)edStop();ET=Math.max(0,ET-60/EBPM);$('epos').value=ET};$('enx').onclick=()=>{if(EPLAY)edStop();ET=Math.min(buf.duration,ET+60/EBPM);$('epos').value=ET};
+function edBpmUi(){$('eb').value=EBPM;$('eo').value=Math.round(EOFF*1000)}
+$('eb').oninput=e=>{EBPM=Math.max(30,Math.min(300,+e.target.value||120))};$('eo').oninput=e=>{EOFF=(+e.target.value||0)/1000};
+$('ed1').onclick=()=>{const b=detBPM();EBPM=b.bpm;EOFF=b.off;edBpmUi()};$('ehx').onclick=()=>{EBPM=Math.max(30,EBPM/2);edBpmUi()};$('e2x').onclick=()=>{EBPM=Math.min(300,EBPM*2);edBpmUi()};
+$('eaut').onclick=()=>{if(!LVOK&&notes.length){EN=notes.map(n=>{const o={t:n.t,l:n.l};if(n.d)o.d=n.d;if(n.path)o.path=n.path.map(q=>({a:q.a,b:q.b,l:q.l}));return o})}};
+function edObj(){const t=($('et').value||fname||'level').trim();const pwv=$('ep').value,pw=pwv?pwNew(pwv):(LV&&LV.pw)||null,au=($('ea').value||'').trim().slice(0,40);lss('bf_author',au);return{v:1,title:t,author:au,pw,bg:EBG||null,dur:+buf.duration.toFixed(2),bpm:EBPM,off:+EOFF.toFixed(3),notes:EN.slice().sort((a,b)=>a.t-b.t).map(n=>{const o={t:+n.t.toFixed(3),l:n.l};if(n.d)o.d=+n.d.toFixed(3);if(n.path)o.path=n.path.map(q=>({a:+q.a.toFixed(3),b:+q.b.toFixed(3),l:q.l}));return o})}}
+function dl(name,parts){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(parts,{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{try{URL.revokeObjectURL(a.href)}catch(x){}a.remove()},4000)}
+$('esv').onclick=()=>{const o=edObj();dl(o.title+'.bfl',[JSON.stringify(o)])};
+$('esb').onclick=async()=>{const o=edObj();let au=LV&&LV.audio;if(!au&&lastFile)au=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(lastFile)});
+ if(!au){$('ehint').textContent='Tidak ada file musik asli untuk disertakan.';return}o.audio=au;dl(o.title+'.bfl',[JSON.stringify(o)])};
+function edApply(){const o=edObj();o.audio=LV&&LV.audio||null;o.unl=1;LV=o;LVOK=true;$('ep').value='';useLevel()}
+function edClose(){edStop();if(EN.length)edApply();$('ed').hidden=true;$('lg').hidden=$('gd').hidden=false}
+$('ecl').onclick=edClose;$('ets').onclick=()=>{edStop();if(!EN.length)return;edApply();$('ed').hidden=true;start();FROMED=1;$('pe').disabled=false;$('pe2').hidden=false};
+$('edb').onclick=async()=>{if(!buf){setS('Pilih file musik dulu untuk membuka editor.');return}
+ if(LV&&LV.pw&&!LV.unl){const p=await askPw();if(p===null)return;if(pwHash(p,LV.pw.s)!==LV.pw.h){setS('Password salah.');return}LV.unl=1}
+ EN=LVOK&&LV?LV.notes.map(n=>JSON.parse(JSON.stringify(n))):[];
+ if(LVOK&&LV){EBPM=LV.bpm||120;EOFF=LV.off||0}else{const b=detBPM();EBPM=b.bpm;EOFF=b.off}
+ $('et').value=LV?LV.title:fname;$('ea').value=LV?LV.author||'':lsg('bf_author');$('ep').value='';EBG=LV&&LV.bg||null;edBgUi();edBpmUi();$('epos').max=buf.duration;ET=0;EB=null;ETOOL='pan';$('ed').classList.remove('emin');$('ed').hidden=false;$('lg').hidden=$('gd').hidden=true;edFit();edUi();edLoop()};
+addEventListener('resize',()=>{if(!$('ed').hidden)edFit()});
+/* ----- bahasa ----- */
+const TD={'Jeda':'Pause','Pilih lagu dari HP-mu, nadanya dibuat otomatis dari beat.':'Pick a song from your phone; the notes are generated automatically from the beat.','Pilih file musik':'Choose music file','Mendukung MP3, WAV, OGG, M4A, dan FLAC (tergantung browser).':'Supports MP3, WAV, OGG, M4A and FLAC (depends on your browser).','Editor level':'Level editor','Muat level':'Load level','Lepas level':'Unload level','Mudah':'Easy','Sedang':'Normal','Sulit':'Hard','Multi-jari':'Multi-finger','Note panjang':'Long notes','Berkelanjutan':'Sustained','Panjang ganda':'Double long','Note ganda':'Double notes','Kecepatan:':'Speed:','x, skor \u00d7':'x, score \u00d7','Pengaturan lanjutan':'Advanced settings','Jeda note panjang:':'Long-note gap:','Sensitivitas beat:':'Beat sensitivity:','Kalibrasi:':'Calibration:','Eksperimen: note ikut kecepatan':'Experiment: notes scale with speed','Eksperimen: sambung note panjang':'Experiment: linked long notes','Mode uji (auto-main)':'Test mode (autoplay)','Tampilan saat main':'In-game display','Akurasi':'Accuracy','Kombo tertinggi':'Max combo','Kombo saat ini':'Current combo',
+'Sensitivitas: makin tinggi, makin banyak beat terdeteksi (terkunci saat eksperimen note ikut kecepatan aktif). Kalibrasi: geser kanan jika ketukanmu sering terlambat, kiri jika terlalu cepat. Keyboard: D F J K.':'Sensitivity: higher means more beats are detected (locked while the speed-scaling experiment is on). Calibration: slide right if your taps are often late, left if too early. Keyboard: D F J K.',
+'Mulai main':'Start','Main lagi':'Play again','Pilih lagu lain':'Choose another song','Tutup panduan':'Close guide','Dasar':'Basics','Pilih file musik, pilih tingkat kesulitan, lalu Mulai main. Ketuk lajur (atau tombol D F J K) saat note menyentuh garis. Note panjang harus ditahan sampai selesai.':'Choose a music file and a difficulty, then press Start. Tap the lane (or the D F J K keys) when a note touches the line. Hold long notes until they end.','Tingkat kesulitan':'Difficulty','Mudah, Sedang, dan Sulit: makin tinggi makin padat. Multi-jari: boleh memakai lebih dari 2 jari.':'Easy, Normal and Hard: higher is denser. Multi-finger: you may use more than 2 fingers.','Opsi note':'Note options',
+': note yang ditahan; muncul di lajur berbeda setiap kali nada lagu berubah.':': held notes; they appear in a different lane each time the pitch of the song changes.',': nada panjang dalam lagu menjadi note panjang besar, dan note panjang lain bisa muncul di dalamnya.':': long tones in the song become big long notes, and other long notes can appear inside them.',': dua note panjang bersamaan dan note biasa diblokir; hanya bisa aktif jika Note panjang aktif, dan menggantikan Note ganda.':': two long notes at once and regular notes are blocked; only works while Long notes is on, and replaces Double notes.',': dua note ketuk bersamaan.':': two tap notes at the same time.',
+'Kecepatan':'Speed','1x sampai 4x. Makin cepat, skor makin besar. Di atas 2.5x ada peringatan.':'1x to 4x. Faster means a bigger score. Above 2.5x you get a warning.','Jeda note panjang':'Long-note gap',': jarak minimum antar note panjang.':': minimum gap between long notes.','Sensitivitas beat':'Beat sensitivity',': makin tinggi makin banyak beat terdeteksi (terkunci saat eksperimen kecepatan aktif).':': higher detects more beats (locked while the speed experiment is on).','Kalibrasi':'Calibration',': geser kanan jika ketukanmu sering terlambat, kiri jika terlalu cepat.':': slide right if your taps are often late, left if too early.','Eksperimen note ikut kecepatan':'Speed-scaling experiment',': jumlah note bertambah mengikuti kecepatan.':': the number of notes grows with speed.','Eksperimen sambung note panjang':'Linked long notes experiment',
+': dua atau tiga note panjang di lajur berbeda disambung jadi satu; geser jarimu ke lajur baru tanpa melepas (di keyboard, tekan tombol lajur baru). Perlu Note panjang aktif.':': two or three long notes in different lanes are joined into one; slide your finger to the new lane without lifting (on keyboard, press the new lane key). Needs Long notes on.','Mode uji':'Test mode',': game memainkan chart sendiri supaya kamu bisa melihat kemunculan note tanpa bermain; statistik chart tampil di kiri atas.':': the game plays the chart itself so you can watch the notes without playing; chart stats show at the top left.','Grafik':'Graphics',': Otomatis, Tinggi, atau Rendah; pilih Rendah jika game terasa berat.':': Auto, High or Low; pick Low if the game feels heavy.',': tampilkan FPS, akurasi, miss, kombo tertinggi, dan kombo saat ini.':': show FPS, accuracy, misses, max combo and current combo.',
+'Buka Editor level setelah memilih musik. Game membaca BPM untuk memasang garis ketukan; geser layar untuk menggulir waktu, lalu pilih alat: Biasa (ketuk), Panjang (titik awal lalu akhir), Sambung (titik awal, titik pindah lajur, titik akhir, lalu Selesai), atau Hapus. Tombol Rekam memutar lagu dan mencatat permainanmu: ketuk jadi note biasa, tahan jadi note panjang, tahan dan geser jadi note sambung. Simpan menghasilkan file level (hanya nada), Simpan+musik menyertakan musiknya. Level tanpa musik hanya bisa dimainkan jika kamu memilih file musik dengan judul yang sesuai. Muat level untuk membuka file level.':'Open the Level editor after choosing music. The game reads the BPM to place the beat grid; drag the screen to scroll through time, then pick a tool: Tap, Hold (start then end point), Slide (start point, lane-change point, end point, then Done) or Delete. Record plays the song and captures your play: tap makes a regular note, hold makes a long note, hold and slide makes a linked note. Save writes a level file (notes only); Save+music includes the music. A level without music can only be played if you choose a music file whose name matches the title. Use Load level to open a level file.',
+'Saat bermain':'While playing','Tombol Jeda (atau Esc/P) membuka menu: Lanjutkan (hitung mundur 3 detik), Ulangi lagu, ganti grafik, atau Keluar. Game juga jeda otomatis jika kamu pindah aplikasi.':'The Pause button (or Esc/P) opens a menu: Resume (3-second countdown), Restart song, change graphics, or Quit. The game also pauses automatically if you switch apps.',
+'Lanjutkan':'Resume','Ulangi lagu':'Restart song','Keluar ke menu':'Quit to menu','Kecepatan tinggi':'High speed','Tetap pakai':'Keep it','Turunkan ke 2.5x':'Lower to 2.5x','Membaca file\u2026':'Reading file\u2026','File ini tidak bisa dibaca. Formatnya mungkin tidak didukung browser/HP-mu. Coba MP3 atau WAV.':'This file could not be read. The format may not be supported by your browser or phone. Try MP3 or WAV.',
+'Deteksi BPM':'Detect BPM','Geser':'Pan','Biasa':'Tap','Panjang':'Hold','Sambung':'Slide','Hapus':'Delete','Selesai':'Done','Bebas':'Free','Rekam':'Record','Impor otomatis':'Import auto chart','Simpan':'Save','Simpan+musik':'Save + music','Uji main':'Play test','Tutup':'Close',
+'Geser layar untuk menggulir waktu. Pilih alat untuk menaruh note.':'Drag the screen to scroll through time. Pick a tool to place notes.','Ketuk lajur untuk menaruh note biasa.':'Tap a lane to place a regular note.','Ketuk titik awal, lalu titik akhir note panjang.':'Tap the start point, then the end point of the long note.','Ketuk titik awal, titik pindah lajur, lalu titik akhir, kemudian Selesai.':'Tap the start point, the lane-change point, then the end point, then Done.','Ketuk note untuk menghapusnya.':'Tap a note to delete it.','Merekam: ketuk = note biasa, tahan = note panjang, tahan dan geser = note sambung.':'Recording: tap = regular note, hold = long note, hold and slide = linked note.',
+'Pilih file musik dulu untuk membuka editor.':'Choose a music file first to open the editor.','Level tidak valid.':'Invalid level.','Tidak ada file musik asli untuk disertakan.':'No original music file to include.'};
+const GLN={Otomatis:'Auto',Tinggi:'High',Rendah:'Low'};
+const nn=k=>k+(k==1?' note':' notes'),TR=[[/^Level: (.*) \((\d+:\d\d), (\d+) nada\)$/,m=>'Level: '+m[1]+' ('+m[2]+', '+nn(m[3])+')'],
+[/^(.*) \((\d+:\d\d), (\d+) nada\)(\. Terlalu sedikit beat terdeteksi, coba tingkat Sulit\.)?$/,m=>m[1]+' ('+m[2]+', '+nn(m[3])+').'+(m[4]?' Too few beats detected, try Hard.':'')],
+[/^Musik tidak cocok dengan judul level: (.*)$/,m=>'Music does not match the level title: '+m[1]],
+[/^Pilih file musik yang sesuai dengan judul level: (.*)$/,m=>'Choose the music file that matches the level title: '+m[1]],
+[/^(\d+) kombo$/,m=>m[1]+' combo'],[/^Akurasi ([\d.]+)%$/,m=>'Accuracy '+m[1]+'%'],[/^Kombo tertinggi (\d+)$/,m=>'Max combo '+m[1]],[/^MODE UJI$/,()=>'TEST MODE'],
+[/^Note (\d+), panjang (\d+), sambung (\d+)\nGanda (\d+), berkelanjutan (\d+), nada berubah (\d+)$/,m=>'Notes '+m[1]+', long '+m[2]+', linked '+m[3]+'\nDouble '+m[4]+', sustained '+m[5]+', pitch changes '+m[6]],
+[/^(.*)\. Skor (\d+) \(kecepatan ([\d.]+)x\), akurasi ([\d.]+)%, kombo terbaik (\d+)\. Perfect (\d+), Good (\d+), OK (\d+), Miss (\d+)\.$/,m=>m[1]+'. Score '+m[2]+' (speed '+m[3]+'x), accuracy '+m[4]+'%, best combo '+m[5]+'. Perfect '+m[6]+', Good '+m[7]+', OK '+m[8]+', Miss '+m[9]+'.'],
+[/^Kecepatan ([\d.]+)x sangat cepat dan sulit dimainkan oleh pemain biasa\. Nada hanya terlihat sekitar ([\d.]+) detik sebelum mengenai garis\. Lanjutkan\?$/,m=>'Speed '+m[1]+'x is very fast and hard for most players. Notes are only visible for about '+m[2]+' seconds before reaching the line. Continue?'],
+[/^Grafik: (Otomatis|Tinggi|Rendah)$/,m=>'Graphics: '+GLN[m[1]]]];
+function tl(v){const t=v.trim();if(!t)return null;if(TD[t])return v.replace(t,TD[t]);for(const[r,f]of TR){const m=t.match(r);if(m)return v.replace(t,f(m))}return null}
+function trNode(n){if(LANG!=='en')return;const v=n.nodeValue,o=tl(v);if(o!==null&&o!==v){n.__o=v;n.__t=o;n.nodeValue=o}}
+function trAll(r){const w=document.createTreeWalker(r,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())trNode(n)}
+new MutationObserver(ms=>{if(LANG!=='en')return;for(const m of ms){if(m.type==='characterData')trNode(m.target);else m.addedNodes.forEach(a=>a.nodeType===3?trNode(a):a.nodeType===1&&trAll(a))}}).observe(document.body,{subtree:true,childList:true,characterData:true});
+function setLang(l){LANG=l;if(l==='en')trAll(document.body);else{const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode())if(n.__t!==undefined&&n.nodeValue===n.__t){n.nodeValue=n.__o;n.__t=undefined}}
+ document.documentElement.lang=l;document.querySelectorAll('[data-ph]').forEach(e=>e.placeholder=l==='en'?e.dataset.pe:e.dataset.ph);try{localStorage.setItem('bf_lang',l)}catch(x){}}
+$('lg').onclick=()=>setLang(LANG==='en'?'id':'en');
+
+/* ===== Deteksi nada, garis interval, kembali ke editor, pustaka folder ===== */
+let PS=1,EGR=true,FROMED=0,LIB=[],lbBusy=0,libName='',lbP='',LASTH=null;
+const DC={1:'#ff4d6d',2:'#4d9bff',3:'#c06bff',4:'#ffd54a',6:'#c06bff',8:'#ffa94d'};
+$('ps').oninput=e=>{PS=e.target.value/100;$('psv').textContent=e.target.value;try{localStorage.setItem('bf_ps',e.target.value)}catch(x){}};
+$('ps').onchange=()=>{if(buf)analyze()};
+try{const v=localStorage.getItem('bf_ps');if(v!==null){$('ps').value=v;$('ps').oninput({target:$('ps')})}}catch(x){}
+$('egr').onclick=e=>{EGR=!EGR;e.target.classList.toggle('on',EGR)};
+function edReopen(){$('pz').hidden=$('end').hidden=true;$('ed').hidden=false;$('lg').hidden=$('gd').hidden=true;edFit();edUi();edLoop()}
+$('pe').onclick=$('pe2').onclick=()=>{stop();edReopen()};
+$('go').addEventListener('click',()=>{FROMED=0;$('pe').disabled=true;$('pe2').hidden=true},true);
+$('ex').addEventListener('click',()=>{FROMED=0});$('back').addEventListener('click',()=>{FROMED=0});
+/* ----- metadata ----- */
+const AUD=/\.(mp3|flac|wav|ogg|oga|opus|m4a|aac|mp4)$/i;
+const tdec=(b,e)=>{try{if(e===1||e===2){let le=e===1,o=0;if(b[0]===255&&b[1]===254){le=true;o=2}else if(b[0]===254&&b[1]===255){le=false;o=2}return new TextDecoder(le?'utf-16le':'utf-16be').decode(b.slice(o)).replace(/\0/g,'').trim()}return new TextDecoder(e===3?'utf-8':'iso-8859-1').decode(b).replace(/\0/g,'').trim()}catch(x){return''}};
+async function mId3(f){const h=new Uint8Array(await f.slice(0,10).arrayBuffer());if(h[0]!==73||h[1]!==68||h[2]!==51)return{};const v=h[3],sz=((h[6]&127)<<21)|((h[7]&127)<<14)|((h[8]&127)<<7)|(h[9]&127);
+ const d=new Uint8Array(await f.slice(10,10+Math.min(sz,3e6)).arrayBuffer()),o={},hl=v===2?6:10,kk={TIT2:'title',TT2:'title',TPE1:'artist',TP1:'artist',TALB:'album',TAL:'album',TPE2:'aa'};let p=0;
+ while(p+hl<=d.length){const id=String.fromCharCode(...d.slice(p,p+(v===2?3:4)));if(!/^[A-Z0-9]+$/.test(id))break;
+  const fs=v===2?(d[p+3]<<16)|(d[p+4]<<8)|d[p+5]:v===4?((d[p+4]&127)<<21)|((d[p+5]&127)<<14)|((d[p+6]&127)<<7)|(d[p+7]&127):((d[p+4]<<24)|(d[p+5]<<16)|(d[p+6]<<8)|d[p+7])>>>0;
+  if(fs<=0)break;const body=d.slice(p+hl,p+hl+fs),k=kk[id];if(k&&body.length>1)o[k]=tdec(body.slice(1),body[0]);p+=hl+fs}
+ if(!o.artist&&o.aa)o.artist=o.aa;return o}
+function vcom(d,p){const o={},dv=new DataView(d.buffer,d.byteOffset,d.byteLength);try{p+=4+dv.getUint32(p,true);const n=dv.getUint32(p,true);p+=4;
+ for(let i=0;i<n;i++){const l=dv.getUint32(p,true);p+=4;const s=new TextDecoder().decode(d.slice(p,p+l));p+=l;const e=s.indexOf('=');if(e>0){const k=s.slice(0,e).toUpperCase(),v=s.slice(e+1);if(k==='TITLE')o.title=v;else if(k==='ARTIST')o.artist=o.artist||v;else if(k==='ALBUM')o.album=v;else if(k==='ALBUMARTIST')o.aa=v}}}catch(x){}
+ if(!o.artist&&o.aa)o.artist=o.aa;return o}
+async function mFlac(f){const h=new Uint8Array(await f.slice(0,4).arrayBuffer());if(String.fromCharCode(...h)!=='fLaC')return{};let p=4;
+ for(let i=0;i<64;i++){const b=new Uint8Array(await f.slice(p,p+4).arrayBuffer());if(b.length<4)break;const last=b[0]&128,t=b[0]&127,l=(b[1]<<16)|(b[2]<<8)|b[3];
+  if(t===4)return vcom(new Uint8Array(await f.slice(p+4,p+4+Math.min(l,2e6)).arrayBuffer()),0);p+=4+l;if(last)break}return{}}
+async function mOgg(f){const d=new Uint8Array(await f.slice(0,65536).arrayBuffer());let s='';for(let i=0;i<d.length;i++)s+=String.fromCharCode(d[i]);
+ let i=s.indexOf('OpusTags');if(i>=0)return vcom(d,i+8);i=s.indexOf('\x03vorbis');if(i>=0)return vcom(d,i+7);return{}}
+function mp4w(m,a,b,lv,o){const td=new TextDecoder();let p=a;while(p+8<=b){const sz=new DataView(m.buffer,m.byteOffset+p,4).getUint32(0);if(sz<8)break;const nm=String.fromCharCode(m[p+4],m[p+5],m[p+6],m[p+7]);
+ if(lv===0&&nm==='udta')mp4w(m,p+8,p+sz,1,o);else if(lv===1&&nm==='meta')mp4w(m,p+12,p+sz,2,o);else if(lv===2&&nm==='ilst')mp4w(m,p+8,p+sz,3,o);
+ else if(lv===3){const key=m[p+4]===169?nm.slice(1):nm,k={nam:'title',ART:'artist',alb:'album',aART:'aa'}[key];if(k&&sz>24)o[k]=td.decode(m.slice(p+24,p+sz))}p+=sz}}
+async function mMp4(f){let p=0;const size=f.size;while(p<size){const h=new DataView(await f.slice(p,p+16).arrayBuffer());if(h.byteLength<8)return{};let sz=h.getUint32(0),hl=8;const t=String.fromCharCode(h.getUint8(4),h.getUint8(5),h.getUint8(6),h.getUint8(7));
+ if(sz===1&&h.byteLength>=16){sz=Number(h.getBigUint64(8));hl=16}if(sz===0)sz=size-p;
+ if(t==='moov'){if(sz>8e6)return{};const m=new Uint8Array(await f.slice(p+hl,p+sz).arrayBuffer()),o={};mp4w(m,0,m.length,0,o);if(!o.artist&&o.aa)o.artist=o.aa;return o}if(sz<8)break;p+=sz}return{}}
+async function readMeta(f){const x=(f.name.split('.').pop()||'').toLowerCase();try{if(x==='mp3'||x==='aac')return await mId3(f);if(x==='flac')return await mFlac(f);if(x==='ogg'||x==='oga'||x==='opus')return await mOgg(f);if(x==='m4a'||x==='mp4')return await mMp4(f)}catch(e){}return{}}
+/* ----- pustaka ----- */
+const lbk=t=>t.title||t.name;
+function lbRender(){const q=nrm($('lbs').value),m=$('lbo').value;const L=LIB.filter(t=>!q||nrm(lbk(t)+t.artist+t.album+t.name).includes(q));
+ const key=t=>m==='artist'?(t.artist||'\uffff'):m==='album'?(t.album||'\uffff'):m==='name'?t.name:lbk(t);
+ L.sort((a,b)=>key(a).localeCompare(key(b),undefined,{numeric:true,sensitivity:'base'})||lbk(a).localeCompare(lbk(b)));
+ const box=$('lbt');box.textContent='';let last=null;
+ for(const t of L){if(m==='artist'||m==='album'){const g=m==='artist'?(t.artist||'Tidak diketahui'):(t.album||'Tidak diketahui');if(g!==last){last=g;const h=document.createElement('div');h.className='lh';h.textContent=g;box.appendChild(h)}}
+  const d=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span');d.className='li';b.textContent=lbk(t);sp.textContent=[t.artist,t.album].filter(Boolean).join(' \u00b7 ')||t.name;d.append(b,sp);d.onclick=()=>{$('lib').hidden=true;$('lg').hidden=$('gd').hidden=false;loadMusic(t.file,t)};box.appendChild(d)}
+ $('lbi').textContent=lbP||(libName?'Folder: '+libName+' \u00b7 '+L.length+' lagu':'')}
+async function libLoad(files,name){libName=name;LIB=files.filter(f=>AUD.test(f.name)).map(f=>({file:f,name:f.name.replace(/\.[^.]+$/,''),title:'',artist:'',album:''}));lbP='';lbRender();const tk=++lbBusy,N=LIB.length;
+ for(let i=0;i<N&&tk===lbBusy;i+=8){await Promise.all(LIB.slice(i,i+8).map(async t=>{const m=await readMeta(t.file);t.title=(m.title||'').trim();t.artist=(m.artist||'').trim();t.album=(m.album||'').trim()}));lbP='Membaca metadata\u2026 '+Math.min(N,i+8)+'/'+N;$('lbi').textContent=lbP;if((i/8)%6===5)lbRender()}
+ if(tk===lbBusy){lbP='';lbRender()}}
+async function scanHandle(h){lbP='Memindai folder\u2026';$('lbi').textContent=lbP;const es=[];
+ async function walk(d,dep){for await(const[n,e]of d.entries()){if(e.kind==='file'){if(AUD.test(n))es.push(e)}else if(dep<4&&es.length<3000)await walk(e,dep+1)}}
+ await walk(h,0);const fs=[];for(const e of es){try{fs.push(await e.getFile())}catch(x){}}libLoad(fs,h.name)}
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('beatfall',2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('h'))d.createObjectStore('h');if(!d.objectStoreNames.contains('m'))d.createObjectStore('m')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function hPut(h){const d=await idb();d.transaction('h','readwrite').objectStore('h').put(h,'dir')}
+async function hGet(){const d=await idb();return new Promise(r=>{const q=d.transaction('h').objectStore('h').get('dir');q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}
+async function pickDir(){if(window.showDirectoryPicker){try{const h=await showDirectoryPicker({id:'beatfall',mode:'read'});try{await hPut(h)}catch(x){}try{localStorage.setItem('bf_lastdir',h.name)}catch(x){}await scanHandle(h);return}catch(e){if(e&&e.name==='AbortError')return}}$('lbdi').click()}
+async function lastInfo(){let h=null,nm='';try{h=await hGet()}catch(x){}LASTH=h&&h.name?h:null;nm=LASTH?LASTH.name:'';if(!nm)try{nm=localStorage.getItem('bf_lastdir')||''}catch(x){}$('lbl').hidden=!nm;$('lbl').textContent='Folder terakhir: '+nm;return nm}
+$('lbb').onclick=async()=>{$('lib').hidden=false;$('lg').hidden=$('gd').hidden=true;lbRender();await lastInfo();
+ if(LASTH&&!LIB.length){try{if(await LASTH.queryPermission({mode:'read'})==='granted')scanHandle(LASTH)}catch(x){}}};
+$('lbx').onclick=()=>{$('lib').hidden=true;$('lg').hidden=$('gd').hidden=false};
+$('lbd').onclick=pickDir;
+$('lbl').onclick=async()=>{if(LASTH){try{let p=await LASTH.queryPermission({mode:'read'});if(p!=='granted')p=await LASTH.requestPermission({mode:'read'});if(p==='granted'){scanHandle(LASTH);return}}catch(x){}}
+ let nm='';try{nm=localStorage.getItem('bf_lastdir')||''}catch(x){}lbP='Browser ini tidak menyimpan akses folder. Pilih ulang: '+nm;$('lbi').textContent=lbP;pickDir()};
+$('lbdi').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(!fs.length)return;const nm=((fs[0].webkitRelativePath||'').split('/')[0])||'Folder';try{localStorage.setItem('bf_lastdir',nm)}catch(x){}libLoad(fs,nm)};
+$('lbf').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)libLoad(fs,'File terpilih')};
+$('lbs').oninput=lbRender;$('lbo').onchange=()=>{try{localStorage.setItem('bf_lbo',$('lbo').value)}catch(x){}lbRender()};
+try{const v=localStorage.getItem('bf_lbo');if(v)$('lbo').value=v}catch(x){}
+Object.assign(TD,{'Deteksi nada:':'Pitch detection:','Garis':'Grid','Kembali ke editor':'Back to editor','Folder musik':'Music folder','Pilih folder':'Choose folder','Pilih beberapa file':'Choose multiple files','Judul':'Title','Artis':'Artist','Nama file':'File name','Tidak diketahui':'Unknown','Memindai folder\u2026':'Scanning folder\u2026','Deteksi nada':'Pitch detection',
+'Tombol Garis menampilkan garis interval berwarna sesuai pilihan 1/1 sampai 1/8 (merah = ketukan, biru = 1/2, ungu = 1/3 dan 1/6, kuning = 1/4, oranye = 1/8). Saat Uji main dijeda atau selesai, ada tombol Kembali ke editor.':'The Grid button shows colored interval lines for the 1/1 to 1/8 choice (red = beat, blue = 1/2, purple = 1/3 and 1/6, yellow = 1/4, orange = 1/8). When Play test is paused or finished, there is a Back to editor button.',
+'Slider Deteksi nada (0\u2013200%) mengatur seberapa kuat game memakai perubahan nada untuk menaruh dan memindahkan note panjang. 0% = seperti sebelum fitur ini ada, 100% = normal, 200% = eksperimen. Hasilnya berbeda tiap lagu; coba ubah bersama sensitivitas beat.':'The Pitch detection slider (0\u2013200%) sets how strongly the game uses pitch changes to place and move long notes. 0% = as before this feature existed, 100% = normal, 200% = experimental. Results differ per song; try it together with beat sensitivity.',
+'Tombol Folder musik membuka daftar lagu dari folder pilihanmu, dengan judul, artis, dan album dari metadata, pencarian, dan pengurutan. Di browser yang mendukungnya, folder terakhir diingat; di browser lain (termasuk kebanyakan Android) kamu perlu memilih ulang folder tiap sesi.':'The Music folder button opens a song list from the folder you pick, with title, artist and album from metadata, search and sorting. In browsers that support it the last folder is remembered; in others (including most Android browsers) you need to pick the folder again each session.'});
+TR.push([/^Membaca metadata\u2026 (\d+)\/(\d+)$/,m=>'Reading metadata\u2026 '+m[1]+'/'+m[2]],[/^Folder: (.*) \u00b7 (\d+) lagu$/,m=>'Folder: '+(m[1]==='File terpilih'?'Selected files':m[1])+' \u00b7 '+m[2]+(m[2]==1?' song':' songs')],[/^Folder terakhir: (.*)$/,m=>'Last folder: '+m[1]],[/^Browser ini tidak menyimpan akses folder\. Pilih ulang: (.*)$/,m=>'This browser does not keep folder access. Pick it again: '+m[1]]);
+
+/* ===== Pembuat/password, background level & menu & gameplay, spektrum, skala UI ===== */
+let EBG=null,MBU='',GIMG='',GBG='solid',ANL=null,SB=null;const SPO={n:64,s:100,o:'h',p:0,c:'#ff4f87',r:0};
+const lsg=k=>{try{return localStorage.getItem(k)||''}catch(x){return''}},lss=(k,v)=>{try{localStorage.setItem(k,v)}catch(x){}};
+/* --- sha256 + password --- */
+const pr_=[];for(let n=2;pr_.length<64;n++)if(pr_.every(p=>n%p))pr_.push(n);
+const SK=pr_.map(p=>Math.floor((Math.cbrt(p)%1)*4294967296)),SH=pr_.slice(0,8).map(p=>Math.floor((Math.sqrt(p)%1)*4294967296));
+function sha256(m){const l=m.length,n=((l+9+63)>>6)<<6,w=new Uint8Array(n);w.set(m);w[l]=128;const dv=new DataView(w.buffer);dv.setUint32(n-4,(l*8)>>>0);dv.setUint32(n-8,Math.floor(l/536870912));
+ let h=SH.slice();const x=new Array(64);
+ for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)x[i]=dv.getUint32(o+i*4);
+  for(let i=16;i<64;i++){const a=x[i-15],c=x[i-2];x[i]=(x[i-16]+(((a>>>7)|(a<<25))^((a>>>18)|(a<<14))^(a>>>3))+x[i-7]+(((c>>>17)|(c<<15))^((c>>>19)|(c<<13))^(c>>>10)))|0}
+  let[a,b,c,d,e,f,g,k]=h;
+  for(let i=0;i<64;i++){const t1=(k+(((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7)))+((e&f)^(~e&g))+SK[i]+x[i])|0,t2=((((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10)))+((a&b)^(a&c)^(b&c)))|0;k=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0}
+  h=[h[0]+a,h[1]+b,h[2]+c,h[3]+d,h[4]+e,h[5]+f,h[6]+g,h[7]+k].map(v=>v|0)}
+ const out=new Uint8Array(32),ov=new DataView(out.buffer);h.forEach((v,i)=>ov.setUint32(i*4,v));return out}
+const hx=u=>[...u].map(v=>v.toString(16).padStart(2,'0')).join(''),u8=s=>new TextEncoder().encode(s);
+function pwHash(pw,salt){const d=u8(salt+':'+pw);let h=sha256(d);for(let i=0;i<3000;i++){const c=new Uint8Array(h.length+d.length);c.set(h);c.set(d,h.length);h=sha256(c)}return hx(h)}
+function pwNew(pw){const s=new Uint8Array(16);try{crypto.getRandomValues(s)}catch(e){for(let i=0;i<16;i++)s[i]=Math.random()*256}const sh=hx(s);return{s:sh,h:pwHash(pw,sh)}}
+function askPw(){return new Promise(r=>{$('pwt').textContent='Level ini dikunci oleh pembuatnya'+(LV&&LV.author?': '+LV.author:'')+'. Masukkan password untuk mengedit.';$('pwi').value='';$('pwo').hidden=false;$('pwi').focus();
+ const f=v=>{$('pwo').hidden=true;$('pwok').onclick=$('pwno').onclick=null;r(v)};$('pwok').onclick=()=>f($('pwi').value);$('pwno').onclick=()=>f(null)})}
+/* --- background level (editor) --- */
+async function readBg(file){if(file.type==='image/gif'){if(file.size>3e6)throw 0;return await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(file)})}
+ const url=URL.createObjectURL(file);try{const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});const k=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.8)}finally{URL.revokeObjectURL(url)}}
+function edBgUi(){$('ebx').hidden=!EBG;$('ebg').parentNode.lastChild.nodeValue=EBG?'Background level \u2713':'Background level'}
+$('ebg').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{EBG=await readBg(f)}catch(x){$('ehint').textContent='Gambar terlalu besar atau tidak bisa dibaca (GIF maksimal 3 MB).'}edBgUi()};
+$('ebx').onclick=()=>{EBG=null;edBgUi()};
+function edMin(on){$('ed').classList.toggle('emin',on);requestAnimationFrame(edFit)}
+$('ehd').onclick=()=>edMin(true);$('emx').onclick=()=>edMin(false);$('emp').onclick=()=>$('epl').click();
+/* --- media tersimpan (IndexedDB bila diizinkan) --- */
+async function mPut(k,b){const d=await idb();d.transaction('m','readwrite').objectStore('m').put(b,k)}
+async function mDel(k){const d=await idb();d.transaction('m','readwrite').objectStore('m').delete(k)}
+async function mGet(k){const d=await idb();return new Promise(r=>{const q=d.transaction('m').objectStore('m').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}
+function showMenuBg(file){const b=$('bgm');b.textContent='';if(MBU){URL.revokeObjectURL(MBU);MBU=''}
+ if(!file){b.hidden=true;delete b.dataset.on;$('menu').classList.remove('hasbg');return}
+ MBU=URL.createObjectURL(file);let el;
+ if((file.type||'').startsWith('video/')){el=document.createElement('video');el.muted=true;el.defaultMuted=true;el.loop=true;el.autoplay=true;el.playsInline=true;el.setAttribute('muted','');el.src=MBU;try{const p=el.play();if(p&&p.catch)p.catch(()=>{})}catch(x){}}
+ else{el=document.createElement('img');el.src=MBU}
+ b.appendChild(el);b.dataset.on='1';b.hidden=false;$('menu').classList.add('hasbg')}
+function setGImg(b){if(GIMG){URL.revokeObjectURL(GIMG);GIMG=''}if(b)GIMG=URL.createObjectURL(b)}
+$('mbf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;showMenuBg(f);try{await mPut('menu',f)}catch(x){}};
+$('mbx').onclick=async()=>{showMenuBg(null);try{await mDel('menu')}catch(x){}};
+$('gbf').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;setGImg(f);try{await mPut('game',f)}catch(x){}};
+$('gbx').onclick=async()=>{setGImg(null);try{await mDel('game')}catch(x){}};
+(async()=>{try{const m=await mGet('menu');if(m)showMenuBg(m);const g=await mGet('game');if(g)setGImg(g)}catch(x){}})();
+/* --- background gameplay + spektrum --- */
+function applyGB(){let url='';SPEC=false;if(GBG==='level'&&LV&&LV.bg)url=LV.bg;else if((GBG==='image'||GBG==='level')&&GIMG)url=GIMG;else if(GBG==='spectrum')SPEC=true;
+ CB=!!url||SPEC;CBI=!!url;const b=$('bgg');b.style.backgroundImage=url?'url("'+url+'")':'none';b.hidden=!CB;$('spc').hidden=!SPEC;fit()}
+function drawSpec(){const c=$('spc'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);if(!ANL)return;if(!SB||SB.length!==ANL.frequencyBinCount)SB=new Uint8Array(ANL.frequencyBinCount);ANL.getByteFrequencyData(SB);
+ const n=SPO.n,gain=SPO.s/100,nb=SB.length*.7,hz=SPO.o==='h',L=(hz?H:W)*.5;x.globalAlpha=.6;
+ for(let i=0;i<n;i++){const a=Math.floor(Math.pow(i/n,1.8)*nb),b=Math.max(a+1,Math.floor(Math.pow((i+1)/n,1.8)*nb));let m=0;for(let j=a;j<b&&j<SB.length;j++)if(SB[j]>m)m=SB[j];
+  const v=Math.min(1,m/255*gain*(.7+i/n*.9)),len=Math.max(2,v*L);x.fillStyle=SPO.r?'hsl('+Math.round(i/n*300)+',85%,60%)':SPO.c;
+  if(hz){const bw=W/n,bx=i*bw+bw*.1,w=bw*.8;if(SPO.p===0)x.fillRect(bx,H-len,w,len);else if(SPO.p===2)x.fillRect(bx,0,w,len);else x.fillRect(bx,H/2-len/2,w,len)}
+  else{const bh=H/n,by=i*bh+bh*.1,h=bh*.8;if(SPO.p===0)x.fillRect(0,by,len,h);else if(SPO.p===2)x.fillRect(W-len,by,len,h);else x.fillRect(W/2-len/2,by,len,h)}}
+ x.globalAlpha=1}
+/* --- panel Tampilan --- */
+function spPos(){const t=SPO.o==='h'?['Bawah','Tengah','Atas']:['Kiri','Tengah','Kanan'];[...$('spp').options].forEach((o,i)=>o.textContent=t[i]);$('spp').value=SPO.p}
+function visUi(){$('gbi').hidden=!(GBG==='image'||GBG==='level');$('spo').hidden=GBG!=='spectrum'}
+function spSave(){lss('bf_spo',JSON.stringify(SPO))}
+$('vsb').onclick=()=>{$('vis').hidden=false};$('vsx').onclick=()=>{$('vis').hidden=true};
+$('ui').oninput=e=>{document.documentElement.style.setProperty('--ui',e.target.value/100);$('uiv').textContent=e.target.value;lss('bf_ui',e.target.value)};
+$('gbm').onchange=e=>{GBG=e.target.value;lss('bf_gbm',GBG);visUi()};
+$('sps').oninput=e=>{SPO.s=+e.target.value;$('ssv').textContent=e.target.value;spSave()};
+$('spn').oninput=e=>{SPO.n=Math.max(32,Math.min(128,+e.target.value));$('snb').textContent=SPO.n;spSave()};
+$('spr').onchange=e=>{SPO.o=e.target.value;spPos();spSave()};
+$('spp').onchange=e=>{SPO.p=+e.target.value;spSave()};
+$('spc1').oninput=e=>{SPO.c=e.target.value;spSave()};$('spcr').onchange=e=>{SPO.r=e.target.checked?1:0;spSave()};
+try{const v=lsg('bf_ui');if(v){$('ui').value=v;$('ui').oninput({target:$('ui')})}const g=lsg('bf_gbm');if(g){GBG=g;$('gbm').value=g}const o=JSON.parse(lsg('bf_spo')||'null');if(o)Object.assign(SPO,o)}catch(x){}
+$('sps').value=SPO.s;$('ssv').textContent=SPO.s;$('spn').value=SPO.n;$('snb').textContent=SPO.n;$('spr').value=SPO.o;$('spc1').value=SPO.c;$('spcr').checked=!!SPO.r;spPos();visUi();
+Object.assign(TD,{'Tampilan':'Display','Kode sumber dan unduh game:':'Source code and game download:','Skala UI:':'UI scale:','Background menu utama':'Main menu background','Pilih gambar/video/GIF':'Choose image/video/GIF','Hapus background':'Remove background','Background gameplay':'Gameplay background','Polos':'Plain','Gambar':'Image','Ikuti level kustom':'Follow custom level','Spektrum':'Spectrum','Pilih gambar':'Choose image','Sensitivitas:':'Sensitivity:','Jumlah bar:':'Bar count:','Orientasi':'Orientation','Vertikal':'Vertical','Posisi':'Position','Bawah':'Bottom','Tengah':'Center','Atas':'Top','Kiri':'Left','Kanan':'Right','Warna':'Color','Pelangi':'Rainbow',
+'Background disimpan di browser jika browser mengizinkan; jika tidak, hanya berlaku selama sesi ini.':'Backgrounds are saved in the browser if it allows; otherwise they only last for this session.',
+'Background level':'Level background','Background level \u2713':'Level background \u2713','Hapus BG':'Remove BG','Sembunyikan menu':'Hide menu','Buka':'Open','Batal':'Cancel','Password salah.':'Wrong password.',
+'Gambar terlalu besar atau tidak bisa dibaca (GIF maksimal 3 MB).':'The image is too large or could not be read (GIF max 3 MB).'});
+TR.push([/^Level ini dikunci oleh pembuatnya(?:: (.*))?\. Masukkan password untuk mengedit\.$/,m=>'This level is locked by its creator'+(m[1]?': '+m[1]:'')+'. Enter the password to edit it.']);
+Object.assign(TD,{'Di bagian atas editor kamu bisa mengisi nama pembuat dan password edit (opsional). Level dengan password tidak bisa dibuka di editor tanpa password itu, tetapi ini hanya perlindungan di dalam game, bukan enkripsi file. Background level juga opsional dan dipakai saat bermain jika Background gameplay diatur ke Ikuti level kustom. Tombol Sembunyikan menu memperluas area chart; tombol Menu di pojok kanan atas memunculkannya kembali.':'At the top of the editor you can enter a creator name and an edit password (optional). A level with a password cannot be opened in the editor without it, but this only protects inside the game and is not file encryption. The level background is also optional and is used while playing when Gameplay background is set to Follow custom level. The Hide menu button widens the chart area; the Menu button at the top right brings it back.','Tombol Tampilan di menu mengatur skala UI, background menu utama (gambar, video yang dibisukan, atau GIF), dan background gameplay: Polos, Gambar, Ikuti level kustom, atau Spektrum. Spektrum punya pengaturan sensitivitas, jumlah bar (32–128), orientasi, posisi, dan warna (atau pelangi). Background disimpan di browser jika browser mengizinkan.':'The Display button in the menu sets the UI scale, the main menu background (image, muted video, or GIF), and the gameplay background: Plain, Image, Follow custom level, or Spectrum. Spectrum has sensitivity, bar count (32–128), orientation, position and color (or rainbow) settings. Backgrounds are saved in the browser if it allows.','Tampilan dan background':'Display and backgrounds'});
+try{if(localStorage.getItem('bf_lang')==='en')setLang('en')}catch(x){}
+
+</script>
+</body>
+</html>

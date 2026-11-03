@@ -10,4 +10,4 @@ Features:
 - Level editor (yes), with password protection to prevent your chart from being edited without permission (it's still decryptable if you know how to edit the .JSON)
 - Ability to read through your folder (it will take a while to load)
 - Lightweight, less than 10 megabytes. Hell, it barely reaches 1!
-- Customizable background
+- Customizable background (gameplay background seems not to be working. On limit now; will fix soon(I use free Claude😭))
